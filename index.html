@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inspección de Centro</title>
+    <style>
+        *{box-sizing:border-box;margin:0;padding:0}
+        body{font-family:'Segoe UI',Tahoma,sans-serif;background:#f0f2f5;color:#333;line-height:1.6}
+        .container{max-width:900px;margin:20px auto;padding:15px}
+        .form-header{background:linear-gradient(135deg,#1a5276,#2980b9);color:#fff;padding:25px;border-radius:12px 12px 0 0;text-align:center}
+        .form-header h1{font-size:24px;margin-bottom:8px}
+        .form-header p{font-size:14px;opacity:.9}
+        .form-body{background:#fff;padding:25px;border-radius:0 0 12px 12px;box-shadow:0 4px 20px rgba(0,0,0,.1)}
+        .campo-centro{background:#eaf2f8;padding:20px;border-radius:8px;margin-bottom:25px;border-left:4px solid #2980b9}
+        .campo-centro>label{font-weight:700;font-size:18px;color:#1a5276;display:block;margin-bottom:8px}
+        .seccion{border:1px solid #e0e0e0;border-radius:10px;margin-bottom:20px;overflow:hidden}
+        .seccion-header{background:linear-gradient(135deg,#2c3e50,#34495e);color:#fff;padding:14px 20px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;user-select:none}
+        .seccion-header h2{font-size:17px}
+        .seccion-body{padding:20px;background:#fafafa}
+        .seccion-body.hidden{display:none}
+        .subseccion{background:#fff;border:1px solid #e8e8e8;border-radius:8px;padding:18px;margin-bottom:18px}
+        .subseccion h3{color:#2c3e50;font-size:15px;margin-bottom:14px;padding-bottom:8px;border-bottom:2px solid #3498db}
+        .form-group{margin-bottom:16px}
+        .form-group label{display:block;font-weight:600;margin-bottom:5px;color:#444;font-size:14px}
+        .form-group input[type="text"],.form-group input[type="number"],.form-group input[type="date"],.form-group textarea,.form-group select{width:100%;padding:10px;border:1px solid #ccc;border-radius:6px;font-size:14px;font-family:inherit}
+        .form-group input:focus,.form-group textarea:focus,.form-group select:focus{border-color:#3498db;outline:none;box-shadow:0 0 0 3px rgba(52,152,219,.15)}
+        .form-group textarea{resize:vertical;min-height:70px}
+        .form-row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+        .radio-group,.checkbox-group{display:flex;gap:12px;flex-wrap:wrap;margin-top:5px}
+        .radio-option,.checkbox-option{display:flex;align-items:center;gap:5px;padding:7px 14px;border:2px solid #ddd;border-radius:20px;cursor:pointer;font-size:13px;transition:.2s}
+        .radio-option:hover,.checkbox-option:hover{border-color:#3498db;background:#eaf2f8}
+        .foto-upload{margin-top:8px}
+        .foto-upload label.upload-btn{display:inline-flex;align-items:center;gap:6px;background:#3498db;color:#fff;padding:9px 18px;border-radius:6px;cursor:pointer;font-size:13px;transition:.2s}
+        .foto-upload label.upload-btn:hover{background:#2980b9}
+        .foto-upload input[type="file"]{display:none}
+        .foto-preview{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px}
+        .preview-item{position:relative;width:110px}
+        .preview-item img{width:110px;height:110px;object-fit:cover;border-radius:8px;border:2px solid #ddd}
+        .preview-item .remove-btn{position:absolute;top:4px;right:4px;background:rgba(231,76,60,.9);color:#fff;border:none;border-radius:50%;width:24px;height:24px;cursor:pointer;font-size:14px}
+        .preview-item .upload-status{font-size:11px;text-align:center;margin-top:4px;padding:2px 6px;border-radius:4px}
+        .preview-item .upload-status.pending{background:#fef9e7;color:#b7950b}
+        .preview-item .upload-status.uploading{background:#eaf2f8;color:#2980b9}
+        .preview-item .upload-status.done{background:#eafaf1;color:#27ae60}
+        .preview-item .upload-status.fail{background:#fdedec;color:#e74c3c}
+        .item-interior{background:#f8f9fa;border:1px dashed #ccc;border-radius:8px;padding:14px;margin-bottom:10px;position:relative}
+        .item-interior .remove-item{position:absolute;top:8px;right:8px;background:#e74c3c;color:#fff;border:none;border-radius:50%;width:26px;height:26px;cursor:pointer;font-size:15px}
+        .add-btn{display:inline-flex;align-items:center;gap:5px;background:#ecf0f1;border:2px dashed #bdc3c7;padding:9px 18px;border-radius:8px;cursor:pointer;color:#7f8c8d;font-size:13px;transition:.2s}
+        .add-btn:hover{border-color:#3498db;color:#3498db}
+        .nota-info{background:#fef9e7;border-left:4px solid #f1c40f;padding:10px 14px;border-radius:0 6px 6px 0;font-size:13px;color:#7d6608;margin-bottom:14px}
+        .btn-group{display:flex;gap:12px;margin-top:25px;justify-content:center;flex-wrap:wrap}
+        .btn{padding:13px 35px;border:none;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;transition:.3s}
+        .btn:disabled{opacity:.5;cursor:not-allowed}
+        .btn-primary{background:linear-gradient(135deg,#27ae60,#2ecc71);color:#fff}
+        .btn-primary:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 4px 15px rgba(39,174,96,.4)}
+        .btn-secondary{background:linear-gradient(135deg,#95a5a6,#bdc3c7);color:#fff}
+        .btn-danger{background:linear-gradient(135deg,#c0392b,#e74c3c);color:#fff}
+        .loading-overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.6);z-index:10000;justify-content:center;align-items:center}
+        .loading-overlay.active{display:flex}
+        .loading-box{background:#fff;padding:35px;border-radius:12px;text-align:center;max-width:420px;width:90%}
+        .spinner{width:50px;height:50px;border:5px solid #e0e0e0;border-top:5px solid #3498db;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 15px}
+        @keyframes spin{0%{transform:rotate(0)}100%{transform:rotate(360deg)}}
+        #loadingText{margin-top:10px;color:#666;font-size:14px}
+        .progress-bar-container{background:#ecf0f1;border-radius:8px;overflow:hidden;height:28px;margin-top:15px}
+        .progress-bar{height:100%;background:linear-gradient(135deg,#27ae60,#2ecc71);transition:width .3s;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:600;font-size:13px}
+        .resultado{display:none;padding:25px;border-radius:10px;text-align:center;margin-top:20px}
+        .resultado.success{background:#eafaf1;border:2px solid #27ae60}
+        .resultado.error{background:#fdedec;border:2px solid #e74c3c}
+        .status-bar{position:fixed;bottom:0;left:0;width:100%;padding:12px 20px;text-align:center;font-weight:600;z-index:9999;transform:translateY(100%);transition:transform .4s}
+        .status-bar.show{transform:translateY(0)}
+        .status-bar.success{background:#27ae60;color:#fff}
+        .status-bar.error{background:#e74c3c;color:#fff}
+        .status-bar.info{background:#3498db;color:#fff}
+        .install-banner{background:linear-gradient(135deg,#8e44ad,#9b59b6);color:#fff;padding:12px 20px;border-radius:8px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
+        .install-banner p{font-size:14px}
+        .install-banner button{background:#fff;color:#8e44ad;border:none;padding:8px 16px;border-radius:6px;font-weight:600;cursor:pointer}
+        @media(max-width:600px){
+            .form-row{grid-template-columns:1fr}
+            .radio-group,.checkbox-group{flex-direction:column}
+            .container{padding:8px;margin:8px auto}
+            .btn{padding:12px 20px;font-size:14px}
+            .form-header h1{font-size:20px}
+        }
+    </style>
+</head>
+<body>
+
+<div class="loading-overlay" id="loading">
+    <div class="loading-box">
+        <div class="spinner"></div>
+        <h3 id="loadingTitle">Enviando...</h3>
+        <p id="loadingText">Preparando datos...</p>
+        <div class="progress-bar-container">
+            <div class="progress-bar" id="progressBar" style="width:0%">0%</div>
+        </div>
+    </div>
+</div>
+
+<div class="status-bar" id="statusBar"></div>
+
+<div class="container">
+
+<!-- Banner instalar -->
+<div class="install-banner" id="installBanner" style="display:none">
+    <p>📱 Añade esta app a tu pantalla de inicio para acceso rápido</p>
+    <button onclick="this.parentElement.style.display='none'">✕ Cerrar</button>
+</div>
+
+<form id="formulario">
+    <div class="form-header">
+        <h1>📋 Inspección de Centro</h1>
+        <p>Formulario con subida de fotos a Google Drive</p>
+    </div>
+
+    <div class="form-body">
+
+        <!-- DATOS GENERALES -->
+        <div class="campo-centro">
+            <label>🏢 CENTRO</label>
+            <input type="text" id="centro" placeholder="Ej: CERBA..." required>
+            <div class="form-row" style="margin-top:12px">
+                <div class="form-group" style="margin-bottom:0">
+                    <label>📅 Fecha</label>
+                    <input type="date" id="fechaInspeccion" required>
+                </div>
+                <div class="form-group" style="margin-bottom:0">
+                    <label>👤 Inspector</label>
+                    <input type="text" id="inspector" placeholder="Nombre" required>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECCION 1 -->
+        <div class="seccion">
+            <div class="seccion-header" onclick="toggleSeccion(this)">
+                <h2>💡 1. ILUMINACIÓN Y ELECTRICIDAD</h2>
+                <span class="toggle-icon">▼</span>
+            </div>
+            <div class="seccion-body">
+                <div class="subseccion">
+                    <h3>🔌 Iluminación</h3>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Estado</label>
+                            <select id="estadoIluminacion"><option value="">--</option><option>Bueno</option><option>Regular</option><option>Malo</option><option>No funciona</option></select>
+                        </div>
+                        <div class="form-group">
+                            <label>Tipo</label>
+                            <select id="tipoIluminacion"><option value="">--</option><option>LED</option><option>Fluorescente</option><option>Halógena</option><option>Mixta</option></select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>📷 Fotos Iluminación</label>
+                        <div class="foto-upload">
+                            <label class="upload-btn" for="fotosIlum">📷 Seleccionar Fotos</label>
+                            <input type="file" id="fotosIlum" data-seccion="iluminacion" multiple accept="image/*" capture="environment" onchange="mostrarPreview(this)">
+                        </div>
+                        <div class="foto-preview" id="preview_iluminacion"></div>
+                    </div>
+                </div>
+                <div class="subseccion">
+                    <h3>🔧 Mecanismos</h3>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Tipo</label>
+                            <input type="text" id="tipoMecanismos" placeholder="Simon, Legrand...">
+                        </div>
+                        <div class="form-group">
+                            <label>Estado</label>
+                            <select id="estadoMecanismos"><option value="">--</option><option>Bueno</option><option>Regular</option><option>Malo</option></select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>📷 Fotos Mecanismos</label>
+                        <div class="foto-upload">
+                            <label class="upload-btn" for="fotosMec">📷 Seleccionar Fotos</label>
+                            <input type="file" id="fotosMec" data-seccion="mecanismos" multiple accept="image/*" capture="environment" onchange="mostrarPreview(this)">
+                        </div>
+                        <div class="foto-preview" id="preview_mecanismos"></div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>📝 Recomendaciones Electricidad</label>
+                    <textarea id="recomendacionElectricidad" placeholder="..."></textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECCION 2 -->
+        <div class="seccion">
+            <div class="seccion-header" onclick="toggleSeccion(this)">
+                <h2>🚿 2. FONTANERÍA</h2>
+                <span class="toggle-icon">▼</span>
+            </div>
+            <div class="seccion-body">
+                <div class="subseccion">
+                    <h3>🚻 Aseos</h3>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Estado</label>
+                            <select id="estadoAseos"><option value="">--</option><option>Bueno</option><option>Regular</option><option>Malo</option></select>
+                        </div>
+                        <div class="form-group">
+                            <label>Nº Aseos</label>
+                            <input type="number" id="numAseos" min="0" placeholder="0">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Recomendaciones</label>
+                        <textarea id="recomendacionAseos" placeholder="..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>📷 Fotos Aseos</label>
+                        <div class="foto-upload">
+                            <label class="upload-btn" for="fotosAseos">📷 Seleccionar Fotos</label>
+                            <input type="file" id="fotosAseos" data-seccion="aseos" multiple accept="image/*" capture="environment" onchange="mostrarPreview(this)">
+                        </div>
+                        <div class="foto-preview" id="preview_aseos"></div>
+                    </div>
+                </div>
+                <div class="subseccion">
+                    <h3>🔥 ACS (Agua Caliente)</h3>
+                    <div class="form-group">
+                        <label>Tipo</label>
+                        <div class="radio-group">
+                            <label class="radio-option"><input type="radio" name="tipoACS" value="Calentador"> Calentador</label>
+                            <label class="radio-option"><input type="radio" name="tipoACS" value="Termo"> Termo</label>
+                            <label class="radio-option"><input type="radio" name="tipoACS" value="Caldera"> Caldera</label>
+                            <label class="radio-option"><input type="radio" name="tipoACS" value="No dispone"> No dispone</label>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Marca</label>
+                            <input type="text" id="marcaACS" placeholder="...">
+                        </div>
+                        <div class="form-group">
+                            <label>Estado</label>
+                            <select id="estadoACS"><option value="">--</option><option>Bueno</option><option>Regular</option><option>Malo</option></select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>📷 Fotos ACS</label>
+                        <div class="foto-upload">
+                            <label class="upload-btn" for="fotosACS">📷 Seleccionar Fotos</label>
+                            <input type="file" id="fotosACS" data-seccion="acs" multiple accept="image/*" capture="environment" onchange="mostrarPreview(this)">
+                        </div>
+                        <div class="foto-preview" id="preview_acs"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECCION 3 -->
+        <div class="seccion">
+            <div class="seccion-header" onclick="toggleSeccion(this)">
+                <h2>❄️ 3. CLIMATIZACIÓN</h2>
+                <span class="toggle-icon">▼</span>
+            </div>
+            <div class="seccion-body">
+                <div class="subseccion">
+                    <h3>🌡️ Tipo Sistema</h3>
+                    <div class="checkbox-group">
+                        <label class="checkbox-option"><input type="checkbox" name="tipoClima" value="Conductos"> Conductos</label>
+                        <label class="checkbox-option"><input type="checkbox" name="tipoClima" value="Split"> Split</label>
+                        <label class="checkbox-option"><input type="checkbox" name="tipoClima" value="Cassette"> Cassette</label>
+                        <label class="checkbox-option"><input type="checkbox" name="tipoClima" value="Centralizado"> Centralizado</label>
+                    </div>
+                </div>
+                <div class="subseccion">
+                    <h3>📡 Unidades Exteriores</h3>
+                    <div class="form-group">
+                        <label>Ubicación</label>
+                        <div class="checkbox-group">
+                            <label class="checkbox-option"><input type="checkbox" name="ubicExt" value="Azotea"> Azotea</label>
+                            <label class="checkbox-option"><input type="checkbox" name="ubicExt" value="Fachada"> Fachada</label>
+                            <label class="checkbox-option"><input type="checkbox" name="ubicExt" value="Patio"> Patio</label>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Nº Unidades</label>
+                            <input type="number" id="numUnidadesExt" min="0" placeholder="0">
+                        </div>
+                        <div class="form-group">
+                            <label>Estado</label>
+                            <select id="estadoExterior"><option value="">--</option><option>Bueno</option><option>Regular</option><option>Malo</option></select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>📷 Fotos Exteriores</label>
+                        <div class="foto-upload">
+                            <label class="upload-btn" for="fotosExt">📷 Seleccionar Fotos</label>
+                            <input type="file" id="fotosExt" data-seccion="exteriores" multiple accept="image/*" capture="environment" onchange="mostrarPreview(this)">
+                        </div>
+                        <div class="foto-preview" id="preview_exteriores"></div>
+                    </div>
+                </div>
+                <div class="subseccion">
+                    <h3>🏠 Unidades Interiores</h3>
+                    <div class="checkbox-group">
+                        <label class="checkbox-option"><input type="checkbox" name="tipoInt" value="Falso techo"> Falso techo</label>
+                        <label class="checkbox-option"><input type="checkbox" name="tipoInt" value="Split"> Split</label>
+                        <label class="checkbox-option"><input type="checkbox" name="tipoInt" value="Cassette"> Cassette</label>
+                    </div>
+                    <div class="form-row" style="margin-top:12px">
+                        <div class="form-group">
+                            <label>Nº Unidades</label>
+                            <input type="number" id="numUnidadesInt" min="0" placeholder="0">
+                        </div>
+                        <div class="form-group">
+                            <label>Estado</label>
+                            <select id="estadoInterior"><option value="">--</option><option>Bueno</option><option>Regular</option><option>Malo</option></select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>📷 Fotos Interiores</label>
+                        <div class="foto-upload">
+                            <label class="upload-btn" for="fotosInt">📷 Seleccionar Fotos</label>
+                            <input type="file" id="fotosInt" data-seccion="interiores" multiple accept="image/*" capture="environment" onchange="mostrarPreview(this)">
+                        </div>
+                        <div class="foto-preview" id="preview_interiores"></div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>📝 Recomendaciones Climatización</label>
+                    <textarea id="recomendacionClimatizacion" placeholder="..."></textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECCION 4 -->
+        <div class="seccion">
+            <div class="seccion-header" onclick="toggleSeccion(this)">
+                <h2>🚪 4. ACCESOS</h2>
+                <span class="toggle-icon">▼</span>
+            </div>
+            <div class="seccion-body">
+                <div class="subseccion">
+                    <h3>🚪 Puerta Principal</h3>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Tipo</label>
+                            <input type="text" id="tipoPuerta" placeholder="Blindada, cristal...">
+                        </div>
+                        <div class="form-group">
+                            <label>Estado</label>
+                            <select id="estadoPuerta"><option value="">--</option><option>Bueno</option><option>Regular</option><option>Malo</option></select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>📷 Fotos Puerta</label>
+                        <div class="foto-upload">
+                            <label class="upload-btn" for="fotosPuerta">📷 Seleccionar Fotos</label>
+                            <input type="file" id="fotosPuerta" data-seccion="puerta" multiple accept="image/*" capture="environment" onchange="mostrarPreview(this)">
+                        </div>
+                        <div class="foto-preview" id="preview_puerta"></div>
+                    </div>
+                </div>
+                <div class="subseccion">
+                    <h3>🪟 Persiana Motorizada</h3>
+                    <div class="radio-group">
+                        <label class="radio-option"><input type="radio" name="persiana" value="Sí" onchange="document.getElementById('detPersiana').style.display='block'"> Sí</label>
+                        <label class="radio-option"><input type="radio" name="persiana" value="No" onchange="document.getElementById('detPersiana').style.display='none'"> No</label>
+                    </div>
+                    <div id="detPersiana" style="display:none;margin-top:12px">
+                        <div class="form-group">
+                            <label>Estado</label>
+                            <select id="estadoPersiana"><option value="">--</option><option>Bueno</option><option>Regular</option><option>Malo</option></select>
+                        </div>
+                        <div class="form-group">
+                            <label>📷 Fotos Persiana</label>
+                            <div class="foto-upload">
+                                <label class="upload-btn" for="fotosPers">📷 Seleccionar Fotos</label>
+                                <input type="file" id="fotosPers" data-seccion="persiana" multiple accept="image/*" capture="environment" onchange="mostrarPreview(this)">
+                            </div>
+                            <div class="foto-preview" id="preview_persiana"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="subseccion">
+                    <h3>🔑 Llaves</h3>
+                    <div class="nota-info">📌 Registre copias existentes y necesarias.</div>
+                    <div id="llavesContainer">
+                        <div class="item-interior">
+                            <button type="button" class="remove-item" onclick="this.parentElement.remove()">×</button>
+                            <div class="form-row">
+                                <div class="form-group"><label>Tipo</label><input type="text" name="tipoLlave[]" placeholder="..."></div>
+                                <div class="form-group"><label>Existentes</label><input type="number" name="copiasExist[]" min="0" placeholder="0"></div>
+                            </div>
+                            <div class="form-group"><label>A realizar</label><input type="number" name="copiasRealizar[]" min="0" placeholder="0"></div>
+                        </div>
+                    </div>
+                    <button type="button" class="add-btn" onclick="agregarLlave()">➕ Añadir llave</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECCION 5 -->
+        <div class="seccion">
+            <div class="seccion-header" onclick="toggleSeccion(this)">
+                <h2>🪑 5. MOBILIARIO Y PAREDES</h2>
+                <span class="toggle-icon">▼</span>
+            </div>
+            <div class="seccion-body">
+                <div class="nota-info">📌 Registre desperfectos visuales o comunicados.</div>
+                <div id="desperfectosContainer">
+                    <div class="item-interior">
+                        <button type="button" class="remove-item" onclick="this.parentElement.remove()">×</button>
+                        <div class="form-row">
+                            <div class="form-group"><label>Ubicación</label><input type="text" name="ubicDesp[]" placeholder="..."></div>
+                            <div class="form-group"><label>Tipo</label>
+                                <select name="tipoDesp[]"><option value="">--</option><option>Grieta</option><option>Humedad</option><option>Pintura</option><option>Rotura</option><option>Mobiliario</option><option>Otro</option></select>
+                            </div>
+                        </div>
+                        <div class="form-group"><label>Descripción</label><textarea name="descDesp[]" rows="2" placeholder="..."></textarea></div>
+                        <div class="form-group">
+                            <label>📷 Fotos</label>
+                            <div class="foto-upload">
+                                <label class="upload-btn" for="fotosDesp0">📷 Seleccionar</label>
+                                <input type="file" id="fotosDesp0" data-seccion="desperfectos" multiple accept="image/*" capture="environment" onchange="mostrarPreview(this)">
+                            </div>
+                            <div class="foto-preview" id="preview_desperfectos"></div>
+                        </div>
+                    </div>
+                </div>
+                <button type="button" class="add-btn" onclick="agregarDesperfecto()">➕ Añadir desperfecto</button>
+            </div>
+        </div>
+
+        <!-- SECCION 6 -->
+        <div class="seccion">
+            <div class="seccion-header" onclick="toggleSeccion(this)">
+                <h2>📝 6. OBSERVACIONES</h2>
+                <span class="toggle-icon">▼</span>
+            </div>
+            <div class="seccion-body">
+                <textarea id="observacionesGenerales" rows="5" placeholder="Observaciones adicionales..."></textarea>
+            </div>
+        </div>
+
+        <div class="resultado" id="resultado">
+            <h3 id="resTitulo"></h3>
+            <p id="resMensaje"></p>
+        </div>
+
+        <div class="btn-group">
+            <button type="button" class="btn btn-secondary" onclick="guardarBorrador()">💾 Borrador</button>
+            <button type="submit" class="btn btn-primary" id="btnEnviar">✅ Enviar con Fotos</button>
+            <button type="button" class="btn btn-danger" onclick="limpiar()">🗑️ Limpiar</button>
+        </div>
+    </div>
+</form>
+</div>
+
+<script>
+var SCRIPT_URL='https://script.google.com/macros/s/AKfycbzraZo1OFZsA_E7JrrVzyRSIik0C_U5hil_KChnuO8kk2oGUFanr5tVeJvAxW15P_g/exec';
+var fotosAlmacen={};
+
+function val(id){var e=document.getElementById(id);return e?e.value:''}
+function getRadio(n){var s=document.querySelector('input[name="'+n+'"]:checked');return s?s.value:''}
+function getChecked(n){return Array.from(document.querySelectorAll('input[name="'+n+'"]:checked')).map(function(c){return c.value}).join(', ')}
+function showStatus(msg,tipo,dur){dur=dur||4000;var bar=document.getElementById('statusBar');bar.textContent=msg;bar.className='status-bar '+tipo+' show';setTimeout(function(){bar.classList.remove('show')},dur)}
+function setLoading(t,x){document.getElementById('loadingTitle').textContent=t;document.getElementById('loadingText').textContent=x}
+function setProgress(p){var b=document.getElementById('progressBar');b.style.width=p+'%';b.textContent=Math.round(p)+'%'}
+
+function mostrarPreview(input){
+    var seccion=input.dataset.seccion;
+    var preview=document.getElementById('preview_'+seccion);
+    if(!fotosAlmacen[seccion])fotosAlmacen[seccion]=[];
+    if(!input.files)return;
+    Array.from(input.files).forEach(function(file){
+        var reader=new FileReader();
+        reader.onload=function(e){
+            var img=new Image();
+            img.onload=function(){
+                var canvas=document.createElement('canvas');
+                var maxW=1200,maxH=1200,w=img.width,h=img.height;
+                if(w>maxW){h=h*(maxW/w);w=maxW}
+                if(h>maxH){w=w*(maxH/h);h=maxH}
+                canvas.width=w;canvas.height=h;
+                canvas.getContext('2d').drawImage(img,0,0,w,h);
+                var comprimida=canvas.toDataURL('image/jpeg',0.7);
+                var id='f_'+Date.now()+'_'+Math.random().toString(36).substr(2,5);
+                fotosAlmacen[seccion].push({id:id,nombre:file.name,tipo:'image/jpeg',base64:comprimida,url:null});
+                var div=document.createElement('div');
+                div.className='preview-item';div.id=id;
+                div.innerHTML='<img src="'+comprimida+'"><button type="button" class="remove-btn" onclick="eliminarFoto(\''+seccion+'\',\''+id+'\')">×</button><div class="upload-status pending">⏳ Pendiente</div>';
+                preview.appendChild(div);
+            };
+            img.src=e.target.result;
+        };
+        reader.readAsDataURL(file);
+    });
+}
+
+function eliminarFoto(s,id){
+    fotosAlmacen[s]=fotosAlmacen[s].filter(function(f){return f.id!==id});
+    var el=document.getElementById(id);if(el)el.remove();
+}
+
+async function subirFotoConReintentos(foto,centro,fecha,intentos){
+    intentos=intentos||3;
+    for(var i=0;i<intentos;i++){
+        try{
+            var response=await fetch(SCRIPT_URL,{
+                method:'POST',
+                body:JSON.stringify({tipo:'foto',centro:centro,fecha:fecha,imagen:foto.base64,mimeType:foto.tipo,nombreArchivo:foto.nombre})
+            });
+            var text=await response.text();
+            try{
+                var result=JSON.parse(text);
+                if(result.result==='success')return result;
+            }catch(e){}
+        }catch(err){
+            if(i===intentos-1)throw err;
+            await new Promise(function(r){setTimeout(r,2000)});
+        }
+    }
+    return{result:'error',message:'Falló tras '+intentos+' intentos'};
+}
+
+document.getElementById('formulario').addEventListener('submit',async function(e){
+    e.preventDefault();
+    if(!val('centro').trim()){showStatus('⚠️ Escriba el centro','error');return}
+    if(!val('fechaInspeccion')){showStatus('⚠️ Seleccione fecha','error');return}
+    if(!val('inspector').trim()){showStatus('⚠️ Escriba inspector','error');return}
+
+    document.getElementById('loading').classList.add('active');
+    document.getElementById('btnEnviar').disabled=true;
+    var centro=val('centro'),fecha=val('fechaInspeccion');
+    var totalFotos=0,fotosSubidas=0,urlsFotos={},fotosError=0;
+    for(var s in fotosAlmacen){totalFotos+=fotosAlmacen[s].length;urlsFotos[s]=[]}
+
+    if(totalFotos>0){
+        setLoading('📷 Subiendo fotos...','0 de '+totalFotos);setProgress(0);
+        for(var seccion in fotosAlmacen){
+            for(var i=0;i<fotosAlmacen[seccion].length;i++){
+                var foto=fotosAlmacen[seccion][i];
+                setLoading('📷 Subiendo fotos...',(fotosSubidas+1)+' de '+totalFotos+': '+foto.nombre);
+                var el=document.getElementById(foto.id);
+                if(el){var st=el.querySelector('.upload-status');st.className='upload-status uploading';st.textContent='⬆️ Subiendo...'}
+                try{
+                    var result=await subirFotoConReintentos(foto,centro,fecha);
+                    if(result.result==='success'){
+                        urlsFotos[seccion].push(result.fileUrl);
+                        if(el){st=el.querySelector('.upload-status');st.className='upload-status done';st.textContent='✅ OK'}
+                    }else{
+                        fotosError++;
+                        if(el){st=el.querySelector('.upload-status');st.className='upload-status fail';st.textContent='❌ Error'}
+                    }
+                }catch(err){
+                    fotosError++;
+                    if(el){st=el.querySelector('.upload-status');st.className='upload-status fail';st.textContent='❌ Error'}
+                }
+                fotosSubidas++;setProgress((fotosSubidas/totalFotos)*80);
+            }
+        }
+    }
+
+    setLoading('📝 Guardando datos...','Enviando a Google Sheets');setProgress(90);
+
+    function getLlaves(){
+        var t=document.querySelectorAll('input[name="tipoLlave[]"]'),x=document.querySelectorAll('input[name="copiasExist[]"]'),r=document.querySelectorAll('input[name="copiasRealizar[]"]'),res=[];
+        t.forEach(function(v,i){if(v.value.trim())res.push(v.value+': '+(x[i]?x[i].value:'0')+' exist, '+(r[i]?r[i].value:'0')+' realizar')});
+        return res.join(' | ');
+    }
+    function getDesperfectos(){
+        var u=document.querySelectorAll('input[name="ubicDesp[]"]'),t=document.querySelectorAll('select[name="tipoDesp[]"]'),d=document.querySelectorAll('textarea[name="descDesp[]"]'),res=[];
+        u.forEach(function(v,i){if(v.value.trim()||(t[i]&&t[i].value))res.push('['+(v.value||'?')+'] '+(t[i]?t[i].value:'')+': '+(d[i]?d[i].value:''))});
+        return res.join(' | ');
+    }
+
+    var datos={
+        tipo:'formulario',centro:centro,fechaInspeccion:fecha,inspector:val('inspector'),
+        estadoIluminacion:val('estadoIluminacion'),tipoIluminacion:val('tipoIluminacion'),
+        tipoMecanismos:val('tipoMecanismos'),estadoMecanismos:val('estadoMecanismos'),
+        recomendacionElectricidad:val('recomendacionElectricidad'),
+        fotosIluminacion:(urlsFotos['iluminacion']||[]).join('\n'),
+        fotosMecanismos:(urlsFotos['mecanismos']||[]).join('\n'),
+        estadoAseos:val('estadoAseos'),numAseos:val('numAseos'),
+        recomendacionAseos:val('recomendacionAseos'),
+        fotosAseos:(urlsFotos['aseos']||[]).join('\n'),
+        tipoACS:getRadio('tipoACS'),estadoACS:val('estadoACS'),marcaACS:val('marcaACS'),
+        fotosACS:(urlsFotos['acs']||[]).join('\n'),
+        tipoClimatizacion:getChecked('tipoClima'),ubicacionExterior:getChecked('ubicExt'),
+        numUnidadesExt:val('numUnidadesExt'),estadoExterior:val('estadoExterior'),
+        fotosExteriores:(urlsFotos['exteriores']||[]).join('\n'),
+        tipoInterior:getChecked('tipoInt'),numUnidadesInt:val('numUnidadesInt'),
+        estadoInterior:val('estadoInterior'),
+        fotosInteriores:(urlsFotos['interiores']||[]).join('\n'),
+        recomendacionClimatizacion:val('recomendacionClimatizacion'),
+        tipoPuerta:val('tipoPuerta'),estadoPuerta:val('estadoPuerta'),
+        fotosPuerta:(urlsFotos['puerta']||[]).join('\n'),
+        persianaMotorizada:getRadio('persiana'),estadoPersiana:val('estadoPersiana'),
+        fotosPersiana:(urlsFotos['persiana']||[]).join('\n'),
+        llaves:getLlaves(),desperfectos:getDesperfectos(),
+        fotosDesperfectos:(urlsFotos['desperfectos']||[]).join('\n'),
+        observacionesGenerales:val('observacionesGenerales')
+    };
+
+    try{
+        var response=await fetch(SCRIPT_URL,{method:'POST',body:JSON.stringify(datos)});
+        var text=await response.text();
+        var result;
+        try{result=JSON.parse(text)}catch(pe){result={result:'success'}}
+        setProgress(100);
+        document.getElementById('loading').classList.remove('active');
+        document.getElementById('btnEnviar').disabled=false;
+        var res=document.getElementById('resultado');
+        res.style.display='block';res.className='resultado success';
+        document.getElementById('resTitulo').textContent='✅ ¡Enviado correctamente!';
+        var msg='Centro: '+centro+' | '+totalFotos+' fotos subidas';
+        if(fotosError>0)msg+=' ('+fotosError+' con error)';
+        document.getElementById('resMensaje').textContent=msg;
+        showStatus('✅ Todo enviado correctamente','success',6000);
+        res.scrollIntoView({behavior:'smooth',block:'center'});
+    }catch(err){
+        document.getElementById('loading').classList.remove('active');
+        document.getElementById('btnEnviar').disabled=false;
+        try{
+            await fetch(SCRIPT_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain'},body:JSON.stringify(datos)});
+            var res=document.getElementById('resultado');res.style.display='block';res.className='resultado success';
+            document.getElementById('resTitulo').textContent='📤 Enviado';
+            document.getElementById('resMensaje').textContent='Revisa Google Sheets. '+totalFotos+' fotos procesadas.';
+            showStatus('📤 Enviado','success',6000);
+        }catch(e2){
+            showStatus('❌ Error: '+err.message,'error',8000);
+        }
+    }
+});
+
+function toggleSeccion(h){var b=h.nextElementSibling;var i=h.querySelector('.toggle-icon');b.classList.toggle('hidden');i.textContent=b.classList.contains('hidden')?'▶':'▼'}
+function agregarLlave(){var c=document.getElementById('llavesContainer');var d=document.createElement('div');d.className='item-interior';d.innerHTML='<button type="button" class="remove-item" onclick="this.parentElement.remove()">×</button><div class="form-row"><div class="form-group"><label>Tipo</label><input type="text" name="tipoLlave[]"></div><div class="form-group"><label>Existentes</label><input type="number" name="copiasExist[]" min="0"></div></div><div class="form-group"><label>A realizar</label><input type="number" name="copiasRealizar[]" min="0"></div>';c.appendChild(d)}
+var despCount=1;
+function agregarDesperfecto(){var c=document.getElementById('desperfectosContainer');var idx=despCount++;var d=document.createElement('div');d.className='item-interior';d.innerHTML='<button type="button" class="remove-item" onclick="this.parentElement.remove()">×</button><div class="form-row"><div class="form-group"><label>Ubicación</label><input type="text" name="ubicDesp[]"></div><div class="form-group"><label>Tipo</label><select name="tipoDesp[]"><option value="">--</option><option>Grieta</option><option>Humedad</option><option>Pintura</option><option>Rotura</option><option>Mobiliario</option><option>Otro</option></select></div></div><div class="form-group"><label>Descripción</label><textarea name="descDesp[]" rows="2"></textarea></div><div class="form-group"><label>📷 Fotos</label><div class="foto-upload"><label class="upload-btn" for="fotosDesp'+idx+'">📷 Seleccionar</label><input type="file" id="fotosDesp'+idx+'" data-seccion="desperfectos" multiple accept="image/*" capture="environment" onchange="mostrarPreview(this)"></div><div class="foto-preview" id="preview_desperfectos_'+idx+'"></div></div>';c.appendChild(d)}
+function guardarBorrador(){localStorage.setItem('borrador',JSON.stringify({centro:val('centro'),fecha:val('fechaInspeccion'),inspector:val('inspector')}));showStatus('💾 Borrador guardado','success')}
+function limpiar(){if(confirm('¿Limpiar todo?')){document.getElementById('formulario').reset();document.querySelectorAll('.foto-preview').forEach(function(p){p.innerHTML=''});for(var k in fotosAlmacen)delete fotosAlmacen[k];document.getElementById('detPersiana').style.display='none';document.getElementById('resultado').style.display='none';document.getElementById('fechaInspeccion').value=new Date().toISOString().split('T')[0]}}
+window.addEventListener('load',function(){document.getElementById('fechaInspeccion').value=new Date().toISOString().split('T')[0]});
+</script>
+</body>
+</html>
