@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Inspección de Centro</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
         *{box-sizing:border-box;margin:0;padding:0}
         body{font-family:'Segoe UI',Tahoma,sans-serif;background:#f0f2f5;color:#333;line-height:1.6}
@@ -55,6 +56,8 @@
         .btn-primary:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 4px 15px rgba(39,174,96,.4)}
         .btn-secondary{background:linear-gradient(135deg,#95a5a6,#bdc3c7);color:#fff}
         .btn-danger{background:linear-gradient(135deg,#c0392b,#e74c3c);color:#fff}
+        .btn-info{background:linear-gradient(135deg,#8e44ad,#9b59b6);color:#fff}
+        .btn-info:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 4px 15px rgba(142,68,173,.4)}
         .loading-overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.6);z-index:10000;justify-content:center;align-items:center}
         .loading-overlay.active{display:flex}
         .loading-box{background:#fff;padding:35px;border-radius:12px;text-align:center;max-width:420px;width:90%}
@@ -71,9 +74,6 @@
         .status-bar.success{background:#27ae60;color:#fff}
         .status-bar.error{background:#e74c3c;color:#fff}
         .status-bar.info{background:#3498db;color:#fff}
-        .install-banner{background:linear-gradient(135deg,#8e44ad,#9b59b6);color:#fff;padding:12px 20px;border-radius:8px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
-        .install-banner p{font-size:14px}
-        .install-banner button{background:#fff;color:#8e44ad;border:none;padding:8px 16px;border-radius:6px;font-weight:600;cursor:pointer}
         @media(max-width:600px){
             .form-row{grid-template-columns:1fr}
             .radio-group,.checkbox-group{flex-direction:column}
@@ -81,6 +81,32 @@
             .btn{padding:12px 20px;font-size:14px}
             .form-header h1{font-size:20px}
         }
+
+        /* ESTILOS DEL INFORME PDF */
+        #informeContainer{display:none}
+        .informe{font-family:Arial,sans-serif;color:#333;padding:20px;max-width:800px;margin:0 auto}
+        .informe-header{background:linear-gradient(135deg,#1a5276,#2980b9);color:#fff;padding:30px;border-radius:10px;margin-bottom:25px;text-align:center}
+        .informe-header h1{font-size:22px;margin-bottom:5px}
+        .informe-header p{font-size:13px;opacity:.9}
+        .informe-datos{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:25px}
+        .informe-dato{background:#f8f9fa;padding:12px;border-radius:8px;border-left:3px solid #3498db}
+        .informe-dato small{color:#888;font-size:11px;display:block}
+        .informe-dato strong{font-size:15px;color:#2c3e50}
+        .informe-seccion{margin-bottom:20px;border:1px solid #e0e0e0;border-radius:8px;overflow:hidden;page-break-inside:avoid}
+        .informe-seccion-header{background:#2c3e50;color:#fff;padding:10px 15px;font-size:14px;font-weight:700}
+        .informe-seccion-body{padding:15px}
+        .informe-campo{margin-bottom:10px}
+        .informe-campo label{font-size:12px;color:#888;display:block}
+        .informe-campo span{font-size:14px;font-weight:600;color:#2c3e50}
+        .informe-fotos{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+        .informe-fotos img{width:150px;height:120px;object-fit:cover;border-radius:6px;border:1px solid #ddd}
+        .informe-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+        .informe-recom{background:#fef9e7;border-left:3px solid #f1c40f;padding:10px;border-radius:0 6px 6px 0;font-size:13px;margin-top:8px}
+        .informe-footer{text-align:center;margin-top:30px;padding:15px;border-top:2px solid #e0e0e0;color:#888;font-size:12px}
+        .informe-badge{display:inline-block;padding:3px 10px;border-radius:12px;font-size:12px;font-weight:600}
+        .badge-bueno{background:#eafaf1;color:#27ae60}
+        .badge-regular{background:#fef9e7;color:#b7950b}
+        .badge-malo{background:#fdedec;color:#e74c3c}
     </style>
 </head>
 <body>
@@ -99,22 +125,14 @@
 <div class="status-bar" id="statusBar"></div>
 
 <div class="container">
-
-<!-- Banner instalar -->
-<div class="install-banner" id="installBanner" style="display:none">
-    <p>📱 Añade esta app a tu pantalla de inicio para acceso rápido</p>
-    <button onclick="this.parentElement.style.display='none'">✕ Cerrar</button>
-</div>
-
 <form id="formulario">
     <div class="form-header">
         <h1>📋 Inspección de Centro</h1>
-        <p>Formulario con subida de fotos a Google Drive</p>
+        <p>Formulario con fotos y generación de informe PDF</p>
     </div>
 
     <div class="form-body">
 
-        <!-- DATOS GENERALES -->
         <div class="campo-centro">
             <label>🏢 CENTRO</label>
             <input type="text" id="centro" placeholder="Ej: CERBA..." required>
@@ -140,49 +158,26 @@
                 <div class="subseccion">
                     <h3>🔌 Iluminación</h3>
                     <div class="form-row">
-                        <div class="form-group">
-                            <label>Estado</label>
-                            <select id="estadoIluminacion"><option value="">--</option><option>Bueno</option><option>Regular</option><option>Malo</option><option>No funciona</option></select>
-                        </div>
-                        <div class="form-group">
-                            <label>Tipo</label>
-                            <select id="tipoIluminacion"><option value="">--</option><option>LED</option><option>Fluorescente</option><option>Halógena</option><option>Mixta</option></select>
-                        </div>
+                        <div class="form-group"><label>Estado</label><select id="estadoIluminacion"><option value="">--</option><option>Bueno</option><option>Regular</option><option>Malo</option><option>No funciona</option></select></div>
+                        <div class="form-group"><label>Tipo</label><select id="tipoIluminacion"><option value="">--</option><option>LED</option><option>Fluorescente</option><option>Halógena</option><option>Mixta</option></select></div>
                     </div>
-                    <div class="form-group">
-                        <label>📷 Fotos Iluminación</label>
-                        <div class="foto-upload">
-                            <label class="upload-btn" for="fotosIlum">📷 Seleccionar Fotos</label>
-                            <input type="file" id="fotosIlum" data-seccion="iluminacion" multiple accept="image/*" capture="environment" onchange="mostrarPreview(this)">
-                        </div>
+                    <div class="form-group"><label>📷 Fotos Iluminación</label>
+                        <div class="foto-upload"><label class="upload-btn" for="fotosIlum">📷 Seleccionar Fotos</label><input type="file" id="fotosIlum" data-seccion="iluminacion" multiple accept="image/*" capture="environment" onchange="mostrarPreview(this)"></div>
                         <div class="foto-preview" id="preview_iluminacion"></div>
                     </div>
                 </div>
                 <div class="subseccion">
                     <h3>🔧 Mecanismos</h3>
                     <div class="form-row">
-                        <div class="form-group">
-                            <label>Tipo</label>
-                            <input type="text" id="tipoMecanismos" placeholder="Simon, Legrand...">
-                        </div>
-                        <div class="form-group">
-                            <label>Estado</label>
-                            <select id="estadoMecanismos"><option value="">--</option><option>Bueno</option><option>Regular</option><option>Malo</option></select>
-                        </div>
+                        <div class="form-group"><label>Tipo</label><input type="text" id="tipoMecanismos" placeholder="Simon, Legrand..."></div>
+                        <div class="form-group"><label>Estado</label><select id="estadoMecanismos"><option value="">--</option><option>Bueno</option><option>Regular</option><option>Malo</option></select></div>
                     </div>
-                    <div class="form-group">
-                        <label>📷 Fotos Mecanismos</label>
-                        <div class="foto-upload">
-                            <label class="upload-btn" for="fotosMec">📷 Seleccionar Fotos</label>
-                            <input type="file" id="fotosMec" data-seccion="mecanismos" multiple accept="image/*" capture="environment" onchange="mostrarPreview(this)">
-                        </div>
+                    <div class="form-group"><label>📷 Fotos Mecanismos</label>
+                        <div class="foto-upload"><label class="upload-btn" for="fotosMec">📷 Seleccionar Fotos</label><input type="file" id="fotosMec" data-seccion="mecanismos" multiple accept="image/*" capture="environment" onchange="mostrarPreview(this)"></div>
                         <div class="foto-preview" id="preview_mecanismos"></div>
                     </div>
                 </div>
-                <div class="form-group">
-                    <label>📝 Recomendaciones Electricidad</label>
-                    <textarea id="recomendacionElectricidad" placeholder="..."></textarea>
-                </div>
+                <div class="form-group"><label>📝 Recomendaciones</label><textarea id="recomendacionElectricidad" placeholder="..."></textarea></div>
             </div>
         </div>
 
@@ -196,32 +191,18 @@
                 <div class="subseccion">
                     <h3>🚻 Aseos</h3>
                     <div class="form-row">
-                        <div class="form-group">
-                            <label>Estado</label>
-                            <select id="estadoAseos"><option value="">--</option><option>Bueno</option><option>Regular</option><option>Malo</option></select>
-                        </div>
-                        <div class="form-group">
-                            <label>Nº Aseos</label>
-                            <input type="number" id="numAseos" min="0" placeholder="0">
-                        </div>
+                        <div class="form-group"><label>Estado</label><select id="estadoAseos"><option value="">--</option><option>Bueno</option><option>Regular</option><option>Malo</option></select></div>
+                        <div class="form-group"><label>Nº Aseos</label><input type="number" id="numAseos" min="0" placeholder="0"></div>
                     </div>
-                    <div class="form-group">
-                        <label>Recomendaciones</label>
-                        <textarea id="recomendacionAseos" placeholder="..."></textarea>
-                    </div>
-                    <div class="form-group">
-                        <label>📷 Fotos Aseos</label>
-                        <div class="foto-upload">
-                            <label class="upload-btn" for="fotosAseos">📷 Seleccionar Fotos</label>
-                            <input type="file" id="fotosAseos" data-seccion="aseos" multiple accept="image/*" capture="environment" onchange="mostrarPreview(this)">
-                        </div>
+                    <div class="form-group"><label>Recomendaciones</label><textarea id="recomendacionAseos" placeholder="..."></textarea></div>
+                    <div class="form-group"><label>📷 Fotos Aseos</label>
+                        <div class="foto-upload"><label class="upload-btn" for="fotosAseos">📷 Seleccionar Fotos</label><input type="file" id="fotosAseos" data-seccion="aseos" multiple accept="image/*" capture="environment" onchange="mostrarPreview(this)"></div>
                         <div class="foto-preview" id="preview_aseos"></div>
                     </div>
                 </div>
                 <div class="subseccion">
-                    <h3>🔥 ACS (Agua Caliente)</h3>
-                    <div class="form-group">
-                        <label>Tipo</label>
+                    <h3>🔥 ACS</h3>
+                    <div class="form-group"><label>Tipo</label>
                         <div class="radio-group">
                             <label class="radio-option"><input type="radio" name="tipoACS" value="Calentador"> Calentador</label>
                             <label class="radio-option"><input type="radio" name="tipoACS" value="Termo"> Termo</label>
@@ -230,21 +211,11 @@
                         </div>
                     </div>
                     <div class="form-row">
-                        <div class="form-group">
-                            <label>Marca</label>
-                            <input type="text" id="marcaACS" placeholder="...">
-                        </div>
-                        <div class="form-group">
-                            <label>Estado</label>
-                            <select id="estadoACS"><option value="">--</option><option>Bueno</option><option>Regular</option><option>Malo</option></select>
-                        </div>
+                        <div class="form-group"><label>Marca</label><input type="text" id="marcaACS" placeholder="..."></div>
+                        <div class="form-group"><label>Estado</label><select id="estadoACS"><option value="">--</option><option>Bueno</option><option>Regular</option><option>Malo</option></select></div>
                     </div>
-                    <div class="form-group">
-                        <label>📷 Fotos ACS</label>
-                        <div class="foto-upload">
-                            <label class="upload-btn" for="fotosACS">📷 Seleccionar Fotos</label>
-                            <input type="file" id="fotosACS" data-seccion="acs" multiple accept="image/*" capture="environment" onchange="mostrarPreview(this)">
-                        </div>
+                    <div class="form-group"><label>📷 Fotos ACS</label>
+                        <div class="foto-upload"><label class="upload-btn" for="fotosACS">📷 Seleccionar Fotos</label><input type="file" id="fotosACS" data-seccion="acs" multiple accept="image/*" capture="environment" onchange="mostrarPreview(this)"></div>
                         <div class="foto-preview" id="preview_acs"></div>
                     </div>
                 </div>
@@ -268,9 +239,8 @@
                     </div>
                 </div>
                 <div class="subseccion">
-                    <h3>📡 Unidades Exteriores</h3>
-                    <div class="form-group">
-                        <label>Ubicación</label>
+                    <h3>📡 Exteriores</h3>
+                    <div class="form-group"><label>Ubicación</label>
                         <div class="checkbox-group">
                             <label class="checkbox-option"><input type="checkbox" name="ubicExt" value="Azotea"> Azotea</label>
                             <label class="checkbox-option"><input type="checkbox" name="ubicExt" value="Fachada"> Fachada</label>
@@ -278,54 +248,31 @@
                         </div>
                     </div>
                     <div class="form-row">
-                        <div class="form-group">
-                            <label>Nº Unidades</label>
-                            <input type="number" id="numUnidadesExt" min="0" placeholder="0">
-                        </div>
-                        <div class="form-group">
-                            <label>Estado</label>
-                            <select id="estadoExterior"><option value="">--</option><option>Bueno</option><option>Regular</option><option>Malo</option></select>
-                        </div>
+                        <div class="form-group"><label>Nº Unidades</label><input type="number" id="numUnidadesExt" min="0" placeholder="0"></div>
+                        <div class="form-group"><label>Estado</label><select id="estadoExterior"><option value="">--</option><option>Bueno</option><option>Regular</option><option>Malo</option></select></div>
                     </div>
-                    <div class="form-group">
-                        <label>📷 Fotos Exteriores</label>
-                        <div class="foto-upload">
-                            <label class="upload-btn" for="fotosExt">📷 Seleccionar Fotos</label>
-                            <input type="file" id="fotosExt" data-seccion="exteriores" multiple accept="image/*" capture="environment" onchange="mostrarPreview(this)">
-                        </div>
+                    <div class="form-group"><label>📷 Fotos Exteriores</label>
+                        <div class="foto-upload"><label class="upload-btn" for="fotosExt">📷 Seleccionar Fotos</label><input type="file" id="fotosExt" data-seccion="exteriores" multiple accept="image/*" capture="environment" onchange="mostrarPreview(this)"></div>
                         <div class="foto-preview" id="preview_exteriores"></div>
                     </div>
                 </div>
                 <div class="subseccion">
-                    <h3>🏠 Unidades Interiores</h3>
+                    <h3>🏠 Interiores</h3>
                     <div class="checkbox-group">
                         <label class="checkbox-option"><input type="checkbox" name="tipoInt" value="Falso techo"> Falso techo</label>
                         <label class="checkbox-option"><input type="checkbox" name="tipoInt" value="Split"> Split</label>
                         <label class="checkbox-option"><input type="checkbox" name="tipoInt" value="Cassette"> Cassette</label>
                     </div>
                     <div class="form-row" style="margin-top:12px">
-                        <div class="form-group">
-                            <label>Nº Unidades</label>
-                            <input type="number" id="numUnidadesInt" min="0" placeholder="0">
-                        </div>
-                        <div class="form-group">
-                            <label>Estado</label>
-                            <select id="estadoInterior"><option value="">--</option><option>Bueno</option><option>Regular</option><option>Malo</option></select>
-                        </div>
+                        <div class="form-group"><label>Nº Unidades</label><input type="number" id="numUnidadesInt" min="0" placeholder="0"></div>
+                        <div class="form-group"><label>Estado</label><select id="estadoInterior"><option value="">--</option><option>Bueno</option><option>Regular</option><option>Malo</option></select></div>
                     </div>
-                    <div class="form-group">
-                        <label>📷 Fotos Interiores</label>
-                        <div class="foto-upload">
-                            <label class="upload-btn" for="fotosInt">📷 Seleccionar Fotos</label>
-                            <input type="file" id="fotosInt" data-seccion="interiores" multiple accept="image/*" capture="environment" onchange="mostrarPreview(this)">
-                        </div>
+                    <div class="form-group"><label>📷 Fotos Interiores</label>
+                        <div class="foto-upload"><label class="upload-btn" for="fotosInt">📷 Seleccionar Fotos</label><input type="file" id="fotosInt" data-seccion="interiores" multiple accept="image/*" capture="environment" onchange="mostrarPreview(this)"></div>
                         <div class="foto-preview" id="preview_interiores"></div>
                     </div>
                 </div>
-                <div class="form-group">
-                    <label>📝 Recomendaciones Climatización</label>
-                    <textarea id="recomendacionClimatizacion" placeholder="..."></textarea>
-                </div>
+                <div class="form-group"><label>📝 Recomendaciones</label><textarea id="recomendacionClimatizacion" placeholder="..."></textarea></div>
             </div>
         </div>
 
@@ -339,21 +286,11 @@
                 <div class="subseccion">
                     <h3>🚪 Puerta Principal</h3>
                     <div class="form-row">
-                        <div class="form-group">
-                            <label>Tipo</label>
-                            <input type="text" id="tipoPuerta" placeholder="Blindada, cristal...">
-                        </div>
-                        <div class="form-group">
-                            <label>Estado</label>
-                            <select id="estadoPuerta"><option value="">--</option><option>Bueno</option><option>Regular</option><option>Malo</option></select>
-                        </div>
+                        <div class="form-group"><label>Tipo</label><input type="text" id="tipoPuerta" placeholder="Blindada, cristal..."></div>
+                        <div class="form-group"><label>Estado</label><select id="estadoPuerta"><option value="">--</option><option>Bueno</option><option>Regular</option><option>Malo</option></select></div>
                     </div>
-                    <div class="form-group">
-                        <label>📷 Fotos Puerta</label>
-                        <div class="foto-upload">
-                            <label class="upload-btn" for="fotosPuerta">📷 Seleccionar Fotos</label>
-                            <input type="file" id="fotosPuerta" data-seccion="puerta" multiple accept="image/*" capture="environment" onchange="mostrarPreview(this)">
-                        </div>
+                    <div class="form-group"><label>📷 Fotos Puerta</label>
+                        <div class="foto-upload"><label class="upload-btn" for="fotosPuerta">📷 Seleccionar Fotos</label><input type="file" id="fotosPuerta" data-seccion="puerta" multiple accept="image/*" capture="environment" onchange="mostrarPreview(this)"></div>
                         <div class="foto-preview" id="preview_puerta"></div>
                     </div>
                 </div>
@@ -364,16 +301,9 @@
                         <label class="radio-option"><input type="radio" name="persiana" value="No" onchange="document.getElementById('detPersiana').style.display='none'"> No</label>
                     </div>
                     <div id="detPersiana" style="display:none;margin-top:12px">
-                        <div class="form-group">
-                            <label>Estado</label>
-                            <select id="estadoPersiana"><option value="">--</option><option>Bueno</option><option>Regular</option><option>Malo</option></select>
-                        </div>
-                        <div class="form-group">
-                            <label>📷 Fotos Persiana</label>
-                            <div class="foto-upload">
-                                <label class="upload-btn" for="fotosPers">📷 Seleccionar Fotos</label>
-                                <input type="file" id="fotosPers" data-seccion="persiana" multiple accept="image/*" capture="environment" onchange="mostrarPreview(this)">
-                            </div>
+                        <div class="form-group"><label>Estado</label><select id="estadoPersiana"><option value="">--</option><option>Bueno</option><option>Regular</option><option>Malo</option></select></div>
+                        <div class="form-group"><label>📷 Fotos Persiana</label>
+                            <div class="foto-upload"><label class="upload-btn" for="fotosPers">📷 Seleccionar Fotos</label><input type="file" id="fotosPers" data-seccion="persiana" multiple accept="image/*" capture="environment" onchange="mostrarPreview(this)"></div>
                             <div class="foto-preview" id="preview_persiana"></div>
                         </div>
                     </div>
@@ -409,17 +339,11 @@
                         <button type="button" class="remove-item" onclick="this.parentElement.remove()">×</button>
                         <div class="form-row">
                             <div class="form-group"><label>Ubicación</label><input type="text" name="ubicDesp[]" placeholder="..."></div>
-                            <div class="form-group"><label>Tipo</label>
-                                <select name="tipoDesp[]"><option value="">--</option><option>Grieta</option><option>Humedad</option><option>Pintura</option><option>Rotura</option><option>Mobiliario</option><option>Otro</option></select>
-                            </div>
+                            <div class="form-group"><label>Tipo</label><select name="tipoDesp[]"><option value="">--</option><option>Grieta</option><option>Humedad</option><option>Pintura</option><option>Rotura</option><option>Mobiliario</option><option>Otro</option></select></div>
                         </div>
                         <div class="form-group"><label>Descripción</label><textarea name="descDesp[]" rows="2" placeholder="..."></textarea></div>
-                        <div class="form-group">
-                            <label>📷 Fotos</label>
-                            <div class="foto-upload">
-                                <label class="upload-btn" for="fotosDesp0">📷 Seleccionar</label>
-                                <input type="file" id="fotosDesp0" data-seccion="desperfectos" multiple accept="image/*" capture="environment" onchange="mostrarPreview(this)">
-                            </div>
+                        <div class="form-group"><label>📷 Fotos</label>
+                            <div class="foto-upload"><label class="upload-btn" for="fotosDesp0">📷 Seleccionar</label><input type="file" id="fotosDesp0" data-seccion="desperfectos" multiple accept="image/*" capture="environment" onchange="mostrarPreview(this)"></div>
                             <div class="foto-preview" id="preview_desperfectos"></div>
                         </div>
                     </div>
@@ -447,10 +371,16 @@
         <div class="btn-group">
             <button type="button" class="btn btn-secondary" onclick="guardarBorrador()">💾 Borrador</button>
             <button type="submit" class="btn btn-primary" id="btnEnviar">✅ Enviar con Fotos</button>
+            <button type="button" class="btn btn-info" onclick="generarInforme()">📄 Generar Informe PDF</button>
             <button type="button" class="btn btn-danger" onclick="limpiar()">🗑️ Limpiar</button>
         </div>
     </div>
 </form>
+</div>
+
+<!-- CONTENEDOR DEL INFORME PDF (oculto) -->
+<div id="informeContainer">
+    <div class="informe" id="informePDF"></div>
 </div>
 
 <script>
@@ -483,153 +413,250 @@ function mostrarPreview(input){
                 var comprimida=canvas.toDataURL('image/jpeg',0.7);
                 var id='f_'+Date.now()+'_'+Math.random().toString(36).substr(2,5);
                 fotosAlmacen[seccion].push({id:id,nombre:file.name,tipo:'image/jpeg',base64:comprimida,url:null});
-                var div=document.createElement('div');
-                div.className='preview-item';div.id=id;
+                var div=document.createElement('div');div.className='preview-item';div.id=id;
                 div.innerHTML='<img src="'+comprimida+'"><button type="button" class="remove-btn" onclick="eliminarFoto(\''+seccion+'\',\''+id+'\')">×</button><div class="upload-status pending">⏳ Pendiente</div>';
                 preview.appendChild(div);
-            };
-            img.src=e.target.result;
-        };
-        reader.readAsDataURL(file);
+            };img.src=e.target.result;
+        };reader.readAsDataURL(file);
     });
 }
 
-function eliminarFoto(s,id){
-    fotosAlmacen[s]=fotosAlmacen[s].filter(function(f){return f.id!==id});
-    var el=document.getElementById(id);if(el)el.remove();
-}
+function eliminarFoto(s,id){fotosAlmacen[s]=fotosAlmacen[s].filter(function(f){return f.id!==id});var el=document.getElementById(id);if(el)el.remove()}
 
 async function subirFotoConReintentos(foto,centro,fecha,intentos){
     intentos=intentos||3;
     for(var i=0;i<intentos;i++){
         try{
-            var response=await fetch(SCRIPT_URL,{
-                method:'POST',
-                body:JSON.stringify({tipo:'foto',centro:centro,fecha:fecha,imagen:foto.base64,mimeType:foto.tipo,nombreArchivo:foto.nombre})
-            });
-            var text=await response.text();
-            try{
-                var result=JSON.parse(text);
-                if(result.result==='success')return result;
-            }catch(e){}
-        }catch(err){
-            if(i===intentos-1)throw err;
-            await new Promise(function(r){setTimeout(r,2000)});
-        }
+            var r=await fetch(SCRIPT_URL,{method:'POST',body:JSON.stringify({tipo:'foto',centro:centro,fecha:fecha,imagen:foto.base64,mimeType:foto.tipo,nombreArchivo:foto.nombre})});
+            var t=await r.text();try{var res=JSON.parse(t);if(res.result==='success')return res}catch(e){}
+        }catch(err){if(i===intentos-1)throw err;await new Promise(function(r){setTimeout(r,2000)})}
     }
-    return{result:'error',message:'Falló tras '+intentos+' intentos'};
+    return{result:'error',message:'Falló'};
 }
 
+// ENVÍO DEL FORMULARIO
 document.getElementById('formulario').addEventListener('submit',async function(e){
     e.preventDefault();
     if(!val('centro').trim()){showStatus('⚠️ Escriba el centro','error');return}
     if(!val('fechaInspeccion')){showStatus('⚠️ Seleccione fecha','error');return}
     if(!val('inspector').trim()){showStatus('⚠️ Escriba inspector','error');return}
-
     document.getElementById('loading').classList.add('active');
     document.getElementById('btnEnviar').disabled=true;
     var centro=val('centro'),fecha=val('fechaInspeccion');
     var totalFotos=0,fotosSubidas=0,urlsFotos={},fotosError=0;
     for(var s in fotosAlmacen){totalFotos+=fotosAlmacen[s].length;urlsFotos[s]=[]}
-
     if(totalFotos>0){
         setLoading('📷 Subiendo fotos...','0 de '+totalFotos);setProgress(0);
-        for(var seccion in fotosAlmacen){
-            for(var i=0;i<fotosAlmacen[seccion].length;i++){
-                var foto=fotosAlmacen[seccion][i];
-                setLoading('📷 Subiendo fotos...',(fotosSubidas+1)+' de '+totalFotos+': '+foto.nombre);
-                var el=document.getElementById(foto.id);
-                if(el){var st=el.querySelector('.upload-status');st.className='upload-status uploading';st.textContent='⬆️ Subiendo...'}
-                try{
-                    var result=await subirFotoConReintentos(foto,centro,fecha);
-                    if(result.result==='success'){
-                        urlsFotos[seccion].push(result.fileUrl);
-                        if(el){st=el.querySelector('.upload-status');st.className='upload-status done';st.textContent='✅ OK'}
-                    }else{
-                        fotosError++;
-                        if(el){st=el.querySelector('.upload-status');st.className='upload-status fail';st.textContent='❌ Error'}
-                    }
-                }catch(err){
-                    fotosError++;
-                    if(el){st=el.querySelector('.upload-status');st.className='upload-status fail';st.textContent='❌ Error'}
-                }
-                fotosSubidas++;setProgress((fotosSubidas/totalFotos)*80);
-            }
-        }
+        for(var sec in fotosAlmacen){for(var i=0;i<fotosAlmacen[sec].length;i++){
+            var foto=fotosAlmacen[sec][i];setLoading('📷 Subiendo...',(fotosSubidas+1)+'/'+totalFotos+': '+foto.nombre);
+            var el=document.getElementById(foto.id);if(el){var st=el.querySelector('.upload-status');st.className='upload-status uploading';st.textContent='⬆️'}
+            try{var res=await subirFotoConReintentos(foto,centro,fecha);
+                if(res.result==='success'){urlsFotos[sec].push(res.fileUrl);if(el){st=el.querySelector('.upload-status');st.className='upload-status done';st.textContent='✅'}}
+                else{fotosError++;if(el){st=el.querySelector('.upload-status');st.className='upload-status fail';st.textContent='❌'}}
+            }catch(err){fotosError++;if(el){st=el.querySelector('.upload-status');st.className='upload-status fail';st.textContent='❌'}}
+            fotosSubidas++;setProgress((fotosSubidas/totalFotos)*80);
+        }}
     }
-
-    setLoading('📝 Guardando datos...','Enviando a Google Sheets');setProgress(90);
-
-    function getLlaves(){
-        var t=document.querySelectorAll('input[name="tipoLlave[]"]'),x=document.querySelectorAll('input[name="copiasExist[]"]'),r=document.querySelectorAll('input[name="copiasRealizar[]"]'),res=[];
-        t.forEach(function(v,i){if(v.value.trim())res.push(v.value+': '+(x[i]?x[i].value:'0')+' exist, '+(r[i]?r[i].value:'0')+' realizar')});
-        return res.join(' | ');
-    }
-    function getDesperfectos(){
-        var u=document.querySelectorAll('input[name="ubicDesp[]"]'),t=document.querySelectorAll('select[name="tipoDesp[]"]'),d=document.querySelectorAll('textarea[name="descDesp[]"]'),res=[];
-        u.forEach(function(v,i){if(v.value.trim()||(t[i]&&t[i].value))res.push('['+(v.value||'?')+'] '+(t[i]?t[i].value:'')+': '+(d[i]?d[i].value:''))});
-        return res.join(' | ');
-    }
-
-    var datos={
-        tipo:'formulario',centro:centro,fechaInspeccion:fecha,inspector:val('inspector'),
-        estadoIluminacion:val('estadoIluminacion'),tipoIluminacion:val('tipoIluminacion'),
-        tipoMecanismos:val('tipoMecanismos'),estadoMecanismos:val('estadoMecanismos'),
-        recomendacionElectricidad:val('recomendacionElectricidad'),
-        fotosIluminacion:(urlsFotos['iluminacion']||[]).join('\n'),
-        fotosMecanismos:(urlsFotos['mecanismos']||[]).join('\n'),
-        estadoAseos:val('estadoAseos'),numAseos:val('numAseos'),
-        recomendacionAseos:val('recomendacionAseos'),
-        fotosAseos:(urlsFotos['aseos']||[]).join('\n'),
-        tipoACS:getRadio('tipoACS'),estadoACS:val('estadoACS'),marcaACS:val('marcaACS'),
-        fotosACS:(urlsFotos['acs']||[]).join('\n'),
-        tipoClimatizacion:getChecked('tipoClima'),ubicacionExterior:getChecked('ubicExt'),
-        numUnidadesExt:val('numUnidadesExt'),estadoExterior:val('estadoExterior'),
-        fotosExteriores:(urlsFotos['exteriores']||[]).join('\n'),
-        tipoInterior:getChecked('tipoInt'),numUnidadesInt:val('numUnidadesInt'),
-        estadoInterior:val('estadoInterior'),
-        fotosInteriores:(urlsFotos['interiores']||[]).join('\n'),
-        recomendacionClimatizacion:val('recomendacionClimatizacion'),
-        tipoPuerta:val('tipoPuerta'),estadoPuerta:val('estadoPuerta'),
-        fotosPuerta:(urlsFotos['puerta']||[]).join('\n'),
-        persianaMotorizada:getRadio('persiana'),estadoPersiana:val('estadoPersiana'),
-        fotosPersiana:(urlsFotos['persiana']||[]).join('\n'),
-        llaves:getLlaves(),desperfectos:getDesperfectos(),
-        fotosDesperfectos:(urlsFotos['desperfectos']||[]).join('\n'),
-        observacionesGenerales:val('observacionesGenerales')
-    };
-
-    try{
-        var response=await fetch(SCRIPT_URL,{method:'POST',body:JSON.stringify(datos)});
-        var text=await response.text();
-        var result;
-        try{result=JSON.parse(text)}catch(pe){result={result:'success'}}
-        setProgress(100);
-        document.getElementById('loading').classList.remove('active');
-        document.getElementById('btnEnviar').disabled=false;
-        var res=document.getElementById('resultado');
-        res.style.display='block';res.className='resultado success';
-        document.getElementById('resTitulo').textContent='✅ ¡Enviado correctamente!';
-        var msg='Centro: '+centro+' | '+totalFotos+' fotos subidas';
-        if(fotosError>0)msg+=' ('+fotosError+' con error)';
-        document.getElementById('resMensaje').textContent=msg;
-        showStatus('✅ Todo enviado correctamente','success',6000);
-        res.scrollIntoView({behavior:'smooth',block:'center'});
-    }catch(err){
-        document.getElementById('loading').classList.remove('active');
-        document.getElementById('btnEnviar').disabled=false;
-        try{
-            await fetch(SCRIPT_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain'},body:JSON.stringify(datos)});
+    setLoading('📝 Guardando...','Enviando a Sheets');setProgress(90);
+    function getLlaves(){var t=document.querySelectorAll('input[name="tipoLlave[]"]'),x=document.querySelectorAll('input[name="copiasExist[]"]'),r=document.querySelectorAll('input[name="copiasRealizar[]"]'),res=[];t.forEach(function(v,i){if(v.value.trim())res.push(v.value+': '+(x[i]?x[i].value:'0')+' exist, '+(r[i]?r[i].value:'0')+' realizar')});return res.join(' | ')}
+    function getDesperfectos(){var u=document.querySelectorAll('input[name="ubicDesp[]"]'),t=document.querySelectorAll('select[name="tipoDesp[]"]'),d=document.querySelectorAll('textarea[name="descDesp[]"]'),res=[];u.forEach(function(v,i){if(v.value.trim()||(t[i]&&t[i].value))res.push('['+(v.value||'?')+'] '+(t[i]?t[i].value:'')+': '+(d[i]?d[i].value:''))});return res.join(' | ')}
+    var datos={tipo:'formulario',centro:centro,fechaInspeccion:fecha,inspector:val('inspector'),estadoIluminacion:val('estadoIluminacion'),tipoIluminacion:val('tipoIluminacion'),tipoMecanismos:val('tipoMecanismos'),estadoMecanismos:val('estadoMecanismos'),recomendacionElectricidad:val('recomendacionElectricidad'),fotosIluminacion:(urlsFotos['iluminacion']||[]).join('\n'),fotosMecanismos:(urlsFotos['mecanismos']||[]).join('\n'),estadoAseos:val('estadoAseos'),numAseos:val('numAseos'),recomendacionAseos:val('recomendacionAseos'),fotosAseos:(urlsFotos['aseos']||[]).join('\n'),tipoACS:getRadio('tipoACS'),estadoACS:val('estadoACS'),marcaACS:val('marcaACS'),fotosACS:(urlsFotos['acs']||[]).join('\n'),tipoClimatizacion:getChecked('tipoClima'),ubicacionExterior:getChecked('ubicExt'),numUnidadesExt:val('numUnidadesExt'),estadoExterior:val('estadoExterior'),fotosExteriores:(urlsFotos['exteriores']||[]).join('\n'),tipoInterior:getChecked('tipoInt'),numUnidadesInt:val('numUnidadesInt'),estadoInterior:val('estadoInterior'),fotosInteriores:(urlsFotos['interiores']||[]).join('\n'),recomendacionClimatizacion:val('recomendacionClimatizacion'),tipoPuerta:val('tipoPuerta'),estadoPuerta:val('estadoPuerta'),fotosPuerta:(urlsFotos['puerta']||[]).join('\n'),persianaMotorizada:getRadio('persiana'),estadoPersiana:val('estadoPersiana'),fotosPersiana:(urlsFotos['persiana']||[]).join('\n'),llaves:getLlaves(),desperfectos:getDesperfectos(),fotosDesperfectos:(urlsFotos['desperfectos']||[]).join('\n'),observacionesGenerales:val('observacionesGenerales')};
+    try{var response=await fetch(SCRIPT_URL,{method:'POST',body:JSON.stringify(datos)});var text=await response.text();var result;try{result=JSON.parse(text)}catch(pe){result={result:'success'}}
+        setProgress(100);document.getElementById('loading').classList.remove('active');document.getElementById('btnEnviar').disabled=false;
+        var res=document.getElementById('resultado');res.style.display='block';res.className='resultado success';
+        document.getElementById('resTitulo').textContent='✅ ¡Enviado!';
+        document.getElementById('resMensaje').textContent='Centro: '+centro+' | '+totalFotos+' fotos'+(fotosError>0?' ('+fotosError+' error)':'');
+        showStatus('✅ Enviado','success',6000);res.scrollIntoView({behavior:'smooth',block:'center'});
+    }catch(err){document.getElementById('loading').classList.remove('active');document.getElementById('btnEnviar').disabled=false;
+        try{await fetch(SCRIPT_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain'},body:JSON.stringify(datos)});
             var res=document.getElementById('resultado');res.style.display='block';res.className='resultado success';
-            document.getElementById('resTitulo').textContent='📤 Enviado';
-            document.getElementById('resMensaje').textContent='Revisa Google Sheets. '+totalFotos+' fotos procesadas.';
-            showStatus('📤 Enviado','success',6000);
-        }catch(e2){
-            showStatus('❌ Error: '+err.message,'error',8000);
-        }
-    }
+            document.getElementById('resTitulo').textContent='📤 Enviado';document.getElementById('resMensaje').textContent='Revisa Sheets';showStatus('📤 Enviado','success',6000);
+        }catch(e2){showStatus('❌ Error','error',8000)}}
 });
 
+// =============================================
+// GENERAR INFORME PDF
+// =============================================
+function getBadge(estado){
+    if(!estado)return'<span class="informe-badge" style="background:#ecf0f1;color:#7f8c8d">No evaluado</span>';
+    var e=estado.toLowerCase();
+    if(e==='bueno')return'<span class="informe-badge badge-bueno">✅ '+estado+'</span>';
+    if(e==='regular')return'<span class="informe-badge badge-regular">⚠️ '+estado+'</span>';
+    return'<span class="informe-badge badge-malo">❌ '+estado+'</span>';
+}
+
+function getFotosHTML(seccion){
+    if(!fotosAlmacen[seccion]||fotosAlmacen[seccion].length===0)return'<p style="color:#999;font-size:12px">Sin fotos</p>';
+    var html='<div class="informe-fotos">';
+    fotosAlmacen[seccion].forEach(function(f){html+='<img src="'+f.base64+'" alt="'+f.nombre+'">'});
+    return html+'</div>';
+}
+
+function generarInforme(){
+    if(!val('centro').trim()){showStatus('⚠️ Escriba el centro primero','error');return}
+
+    showStatus('📄 Generando informe PDF...','info',10000);
+
+    var centro=val('centro');
+    var fecha=val('fechaInspeccion');
+    var inspector=val('inspector');
+
+    // Recopilar llaves
+    var llavesHTML='';
+    var tipos=document.querySelectorAll('input[name="tipoLlave[]"]');
+    var exist=document.querySelectorAll('input[name="copiasExist[]"]');
+    var realizar=document.querySelectorAll('input[name="copiasRealizar[]"]');
+    tipos.forEach(function(t,i){
+        if(t.value.trim()){
+            llavesHTML+='<div style="padding:5px 0;border-bottom:1px solid #eee"><strong>'+t.value+'</strong>: '+(exist[i]?exist[i].value:'0')+' existentes, '+(realizar[i]?realizar[i].value:'0')+' a realizar</div>';
+        }
+    });
+    if(!llavesHTML)llavesHTML='<p style="color:#999">No registradas</p>';
+
+    // Recopilar desperfectos
+    var despHTML='';
+    var ubics=document.querySelectorAll('input[name="ubicDesp[]"]');
+    var tiposD=document.querySelectorAll('select[name="tipoDesp[]"]');
+    var descs=document.querySelectorAll('textarea[name="descDesp[]"]');
+    ubics.forEach(function(u,i){
+        if(u.value.trim()||(tiposD[i]&&tiposD[i].value)){
+            despHTML+='<div style="padding:8px;margin-bottom:6px;background:#f8f9fa;border-radius:6px;border-left:3px solid #e74c3c"><strong>'+( u.value||'Sin ubicación')+'</strong> - '+(tiposD[i]?tiposD[i].value:'')+'<br><span style="color:#666;font-size:13px">'+(descs[i]?descs[i].value:'')+'</span></div>';
+        }
+    });
+    if(!despHTML)despHTML='<p style="color:#999">No se registraron desperfectos</p>';
+
+    var html='\
+    <div class="informe-header">\
+        <h1>📋 INFORME DE INSPECCIÓN</h1>\
+        <p>Documento generado automáticamente</p>\
+    </div>\
+    <div class="informe-datos">\
+        <div class="informe-dato"><small>Centro</small><strong>'+centro+'</strong></div>\
+        <div class="informe-dato"><small>Fecha Inspección</small><strong>'+fecha+'</strong></div>\
+        <div class="informe-dato"><small>Inspector</small><strong>'+inspector+'</strong></div>\
+    </div>\
+    \
+    <div class="informe-seccion">\
+        <div class="informe-seccion-header">💡 1. ILUMINACIÓN Y ELECTRICIDAD</div>\
+        <div class="informe-seccion-body">\
+            <div class="informe-grid">\
+                <div class="informe-campo"><label>Estado Iluminación</label>'+getBadge(val('estadoIluminacion'))+'</div>\
+                <div class="informe-campo"><label>Tipo Iluminación</label><span>'+(val('tipoIluminacion')||'No indicado')+'</span></div>\
+                <div class="informe-campo"><label>Tipo Mecanismos</label><span>'+(val('tipoMecanismos')||'No indicado')+'</span></div>\
+                <div class="informe-campo"><label>Estado Mecanismos</label>'+getBadge(val('estadoMecanismos'))+'</div>\
+            </div>\
+            '+(val('recomendacionElectricidad')?'<div class="informe-recom"><strong>Recomendación:</strong> '+val('recomendacionElectricidad')+'</div>':'')+'\
+            <div class="informe-campo"><label>📷 Fotos Iluminación</label>'+getFotosHTML('iluminacion')+'</div>\
+            <div class="informe-campo"><label>📷 Fotos Mecanismos</label>'+getFotosHTML('mecanismos')+'</div>\
+        </div>\
+    </div>\
+    \
+    <div class="informe-seccion">\
+        <div class="informe-seccion-header">🚿 2. FONTANERÍA</div>\
+        <div class="informe-seccion-body">\
+            <div class="informe-grid">\
+                <div class="informe-campo"><label>Estado Aseos</label>'+getBadge(val('estadoAseos'))+'</div>\
+                <div class="informe-campo"><label>Nº Aseos</label><span>'+(val('numAseos')||'0')+'</span></div>\
+            </div>\
+            '+(val('recomendacionAseos')?'<div class="informe-recom"><strong>Recomendación:</strong> '+val('recomendacionAseos')+'</div>':'')+'\
+            <div class="informe-campo"><label>📷 Fotos Aseos</label>'+getFotosHTML('aseos')+'</div>\
+            <div style="border-top:1px solid #eee;padding-top:12px;margin-top:12px">\
+                <div class="informe-grid">\
+                    <div class="informe-campo"><label>Tipo ACS</label><span>'+(getRadio('tipoACS')||'No indicado')+'</span></div>\
+                    <div class="informe-campo"><label>Estado ACS</label>'+getBadge(val('estadoACS'))+'</div>\
+                    <div class="informe-campo"><label>Marca ACS</label><span>'+(val('marcaACS')||'No indicado')+'</span></div>\
+                </div>\
+                <div class="informe-campo"><label>📷 Fotos ACS</label>'+getFotosHTML('acs')+'</div>\
+            </div>\
+        </div>\
+    </div>\
+    \
+    <div class="informe-seccion">\
+        <div class="informe-seccion-header">❄️ 3. CLIMATIZACIÓN</div>\
+        <div class="informe-seccion-body">\
+            <div class="informe-campo"><label>Tipo Sistema</label><span>'+(getChecked('tipoClima')||'No indicado')+'</span></div>\
+            <div style="border-top:1px solid #eee;padding-top:10px;margin-top:10px">\
+                <strong style="font-size:13px">Unidades Exteriores</strong>\
+                <div class="informe-grid" style="margin-top:6px">\
+                    <div class="informe-campo"><label>Ubicación</label><span>'+(getChecked('ubicExt')||'No indicada')+'</span></div>\
+                    <div class="informe-campo"><label>Nº Unidades</label><span>'+(val('numUnidadesExt')||'0')+'</span></div>\
+                    <div class="informe-campo"><label>Estado</label>'+getBadge(val('estadoExterior'))+'</div>\
+                </div>\
+                <div class="informe-campo"><label>📷 Fotos</label>'+getFotosHTML('exteriores')+'</div>\
+            </div>\
+            <div style="border-top:1px solid #eee;padding-top:10px;margin-top:10px">\
+                <strong style="font-size:13px">Unidades Interiores</strong>\
+                <div class="informe-grid" style="margin-top:6px">\
+                    <div class="informe-campo"><label>Tipo</label><span>'+(getChecked('tipoInt')||'No indicado')+'</span></div>\
+                    <div class="informe-campo"><label>Nº Unidades</label><span>'+(val('numUnidadesInt')||'0')+'</span></div>\
+                    <div class="informe-campo"><label>Estado</label>'+getBadge(val('estadoInterior'))+'</div>\
+                </div>\
+                <div class="informe-campo"><label>📷 Fotos</label>'+getFotosHTML('interiores')+'</div>\
+            </div>\
+            '+(val('recomendacionClimatizacion')?'<div class="informe-recom"><strong>Recomendación:</strong> '+val('recomendacionClimatizacion')+'</div>':'')+'\
+        </div>\
+    </div>\
+    \
+    <div class="informe-seccion">\
+        <div class="informe-seccion-header">🚪 4. ACCESOS</div>\
+        <div class="informe-seccion-body">\
+            <div class="informe-grid">\
+                <div class="informe-campo"><label>Tipo Puerta</label><span>'+(val('tipoPuerta')||'No indicado')+'</span></div>\
+                <div class="informe-campo"><label>Estado Puerta</label>'+getBadge(val('estadoPuerta'))+'</div>\
+                <div class="informe-campo"><label>Persiana Motorizada</label><span>'+(getRadio('persiana')||'No indicado')+'</span></div>\
+                <div class="informe-campo"><label>Estado Persiana</label>'+getBadge(val('estadoPersiana'))+'</div>\
+            </div>\
+            <div class="informe-campo"><label>📷 Fotos Puerta</label>'+getFotosHTML('puerta')+'</div>\
+            <div class="informe-campo"><label>📷 Fotos Persiana</label>'+getFotosHTML('persiana')+'</div>\
+            <div style="border-top:1px solid #eee;padding-top:10px;margin-top:10px">\
+                <strong>🔑 Llaves</strong>\
+                <div style="margin-top:6px">'+llavesHTML+'</div>\
+            </div>\
+        </div>\
+    </div>\
+    \
+    <div class="informe-seccion">\
+        <div class="informe-seccion-header">🪑 5. MOBILIARIO Y PAREDES</div>\
+        <div class="informe-seccion-body">\
+            '+despHTML+'\
+            <div class="informe-campo"><label>📷 Fotos Desperfectos</label>'+getFotosHTML('desperfectos')+'</div>\
+        </div>\
+    </div>\
+    \
+    '+(val('observacionesGenerales')?'\
+    <div class="informe-seccion">\
+        <div class="informe-seccion-header">📝 6. OBSERVACIONES GENERALES</div>\
+        <div class="informe-seccion-body"><p>'+val('observacionesGenerales')+'</p></div>\
+    </div>':'')+'\
+    \
+    <div class="informe-footer">\
+        <p>Informe generado el '+new Date().toLocaleString('es-ES')+'</p>\
+        <p>Inspector: '+inspector+' | Centro: '+centro+'</p>\
+    </div>';
+
+    var contenedor=document.getElementById('informePDF');
+    contenedor.innerHTML=html;
+    document.getElementById('informeContainer').style.display='block';
+
+    var opciones={
+        margin:[10,10,10,10],
+        filename:'Inspeccion_'+centro.replace(/\s/g,'_')+'_'+fecha+'.pdf',
+        image:{type:'jpeg',quality:0.85},
+        html2canvas:{scale:2,useCORS:true,logging:false},
+        jsPDF:{unit:'mm',format:'a4',orientation:'portrait'},
+        pagebreak:{mode:['avoid-all','css','legacy']}
+    };
+
+    html2pdf().set(opciones).from(contenedor).save().then(function(){
+        document.getElementById('informeContainer').style.display='none';
+        showStatus('✅ PDF descargado correctamente','success',5000);
+    }).catch(function(err){
+        document.getElementById('informeContainer').style.display='none';
+        showStatus('❌ Error generando PDF: '+err.message,'error',5000);
+    });
+}
+
+// UI
 function toggleSeccion(h){var b=h.nextElementSibling;var i=h.querySelector('.toggle-icon');b.classList.toggle('hidden');i.textContent=b.classList.contains('hidden')?'▶':'▼'}
 function agregarLlave(){var c=document.getElementById('llavesContainer');var d=document.createElement('div');d.className='item-interior';d.innerHTML='<button type="button" class="remove-item" onclick="this.parentElement.remove()">×</button><div class="form-row"><div class="form-group"><label>Tipo</label><input type="text" name="tipoLlave[]"></div><div class="form-group"><label>Existentes</label><input type="number" name="copiasExist[]" min="0"></div></div><div class="form-group"><label>A realizar</label><input type="number" name="copiasRealizar[]" min="0"></div>';c.appendChild(d)}
 var despCount=1;
