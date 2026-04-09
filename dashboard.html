@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Inspecciones</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        *{box-sizing:border-box;margin:0;padding:0}
+        body{font-family:'Segoe UI',sans-serif;background:#0f1923;color:#fff;min-height:100vh}
+        .topbar{background:linear-gradient(135deg,#1a5276,#2980b9);padding:15px 25px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
+        .topbar h1{font-size:22px}
+        .topbar p{font-size:13px;opacity:.8}
+        .btn-form{background:#27ae60;color:#fff;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;font-weight:600;text-decoration:none;display:inline-block}
+        .btn-form:hover{background:#219a52}
+        .filtros{background:#1a2535;padding:20px 25px;display:flex;gap:15px;flex-wrap:wrap;align-items:flex-end;border-bottom:1px solid #2c3e50}
+        .filtro-group{display:flex;flex-direction:column;gap:5px}
+        .filtro-group label{font-size:12px;color:#888;font-weight:600}
+        .filtro-group input,.filtro-group select{background:#0f1923;border:1px solid #2c3e50;color:#fff;padding:8px 12px;border-radius:6px;font-size:14px;min-width:180px}
+        .btn-filtrar{background:#3498db;color:#fff;border:none;padding:9px 20px;border-radius:6px;cursor:pointer;font-weight:600}
+        .btn-filtrar:hover{background:#2980b9}
+        .btn-limpiar{background:#e74c3c;color:#fff;border:none;padding:9px 20px;border-radius:6px;cursor:pointer;font-weight:600}
+        .loading-dash{text-align:center;padding:60px;font-size:18px;color:#888}
+        .spinner-dash{width:40px;height:40px;border:4px solid #2c3e50;border-top:4px solid #3498db;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 20px}
+        @keyframes spin{0%{transform:rotate(0)}100%{transform:rotate(360deg)}}
+        .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:15px;padding:20px 25px}
+        .stat-card{background:#1a2535;border-radius:10px;padding:20px;text-align:center;border-left:4px solid #3498db;transition:.2s}
+        .stat-card:hover{transform:translateY(-3px);box-shadow:0 6px 20px rgba(0,0,0,.3)}
+        .stat-card .num{font-size:36px;font-weight:700;color:#3498db}
+        .stat-card .label{font-size:13px;color:#888;margin-top:5px}
+        .stat-card.verde .num{color:#27ae60}
+        .stat-card.rojo .num{color:#e74c3c}
+        .stat-card.naranja .num{color:#f39c12}
+        .stat-card.morado .num{color:#9b59b6}
+        .graficas-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:20px;padding:0 25px 20px}
+        .grafica-card{background:#1a2535;border-radius:10px;padding:20px}
+        .grafica-card h3{font-size:15px;color:#aaa;margin-bottom:15px;display:flex;align-items:center;gap:8px}
+        .tabla-container{padding:0 25px 25px}
+        .tabla-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:10px}
+        .tabla-header h3{font-size:16px;color:#aaa}
+        .buscar-tabla{background:#0f1923;border:1px solid #2c3e50;color:#fff;padding:8px 14px;border-radius:6px;font-size:14px;min-width:250px}
+        table{width:100%;border-collapse:collapse;font-size:13px}
+        thead tr{background:#2c3e50}
+        thead th{padding:12px 10px;text-align:left;color:#bbb;font-weight:600;white-space:nowrap}
+        tbody tr{border-bottom:1px solid #1a2535;transition:.2s;cursor:pointer}
+        tbody tr:hover{background:#2c3e50}
+        tbody td{padding:10px;color:#ccc}
+        .badge{display:inline-block;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700}
+        .badge-bueno{background:rgba(39,174,96,.2);color:#27ae60;border:1px solid #27ae60}
+        .badge-regular{background:rgba(243,156,18,.2);color:#f39c12;border:1px solid #f39c12}
+        .badge-malo{background:rgba(231,76,60,.2);color:#e74c3c;border:1px solid #e74c3c}
+        .badge-na{background:rgba(149,165,166,.2);color:#95a5a6;border:1px solid #95a5a6}
+        .modal-overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.8);z-index:1000;justify-content:center;align-items:flex-start;padding:20px;overflow-y:auto}
+        .modal-overlay.active{display:flex}
+        .modal{background:#1a2535;border-radius:12px;padding:25px;max-width:800px;width:100%;margin:auto;position:relative}
+        .modal-close{position:absolute;top:15px;right:15px;background:#e74c3c;color:#fff;border:none;border-radius:50%;width:30px;height:30px;cursor:pointer;font-size:16px}
+        .modal h2{font-size:20px;margin-bottom:20px;color:#3498db}
+        .modal-grid{display:grid;grid-template-columns:1fr 1fr;gap:15px}
+        .modal-campo{background:#0f1923;padding:12px;border-radius:8px}
+        .modal-campo small{color:#888;font-size:11px;display:block}
+        .modal-campo strong{font-size:14px}
+        .modal-seccion{background:#0f1923;border-radius:8px;padding:15px;margin-top:12px}
+        .modal-seccion h4{color:#3498db;margin-bottom:10px;font-size:14px}
+        .sin-datos{text-align:center;padding:60px;color:#555;font-size:16px}
+        .empresa-lista{padding:0 25px 25px}
+        .empresa-item{background:#1a2535;border-radius:8px;padding:15px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;cursor:pointer;transition:.2s}
+        .empresa-item:hover{background:#2c3e50}
+        .empresa-nombre{font-weight:700;font-size:15px}
+        .empresa-stats{display:flex;gap:10px;flex-wrap:wrap}
+        .empresa-stat{font-size:12px;background:#0f1923;padding:4px 10px;border-radius:12px}
+        @media(max-width:600px){.graficas-grid{grid-template-columns:1fr}.filtros{flex-direction:column}.modal-grid{grid-template-columns:1fr}.stats-grid{grid-template-columns:1fr 1fr}}
+    </style>
+</head>
+<body>
+
+<div class="topbar">
+    <div>
+        <h1>📊 Dashboard de Inspecciones</h1>
+        <p id="ultimaActualizacion">Cargando datos...</p>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn-form" onclick="cargarDatos()">🔄 Actualizar</button>
+        <a class="btn-form" href="index.html">📋 Nuevo Formulario</a>
+    </div>
+</div>
+
+<!-- FILTROS -->
+<div class="filtros">
+    <div class="filtro-group">
+        <label>📅 Fecha</label>
+        <input type="date" id="filtroFecha">
+    </div>
+    <div class="filtro-group">
+        <label>🏢 Centro / Empresa</label>
+        <input type="text" id="filtroCentro" placeholder="Buscar centro...">
+    </div>
+    <div class="filtro-group">
+        <label>👤 Inspector</label>
+        <input type="text" id="filtroInspector" placeholder="Buscar inspector...">
+    </div>
+    <div class="filtro-group">
+        <label>📊 Estado</label>
+        <select id="filtroEstado">
+            <option value="">Todos</option>
+            <option value="Bueno">✅ Bueno</option>
+            <option value="Regular">⚠️ Regular</option>
+            <option value="Malo">❌ Malo</option>
+        </select>
+    </div>
+    <button class="btn-filtrar" onclick="aplicarFiltros()">🔍 Filtrar</button>
+    <button class="btn-limpiar" onclick="limpiarFiltros()">✕ Limpiar</button>
+</div>
+
+<div id="contenidoDash">
+    <div class="loading-dash">
+        <div class="spinner-dash"></div>
+        <p>Cargando datos de Google Sheets...</p>
+    </div>
+</div>
+
+<!-- MODAL DETALLE -->
+<div class="modal-overlay" id="modalOverlay" onclick="cerrarModal(event)">
+    <div class="modal" id="modal">
+        <button class="modal-close" onclick="cerrarModalBtn()">×</button>
+        <div id="modalContenido"></div>
+    </div>
+</div>
+
+<script>
+var SCRIPT_URL='https://script.google.com/macros/s/AKfycbyzTAswn_ThTtRPc_HeBsdLjzDj5oCYb2nJNwnLsKq-POc-KLKQ2Am7zAlVHlMtcBk2/exec';
+var todosLosDatos=[];
+var datosFiltrados=[];
+var graficas={};
+
+// CARGAR DATOS
+async function cargarDatos(){
+    document.getElementById('contenidoDash').innerHTML='<div class="loading-dash"><div class="spinner-dash"></div><p>Cargando datos...</p></div>';
+    try{
+        var resp=await fetch(SCRIPT_URL+'?t='+Date.now());
+        var txt=await resp.text();
+        var result=JSON.parse(txt);
+        if(result.result==='success'&&result.datos){
+            todosLosDatos=result.datos;
+            datosFiltrados=todosLosDatos;
+            document.getElementById('ultimaActualizacion').textContent='Última actualización: '+new Date().toLocaleString('es-ES')+' | '+todosLosDatos.length+' inspecciones totales';
+            renderDashboard(datosFiltrados);
+        }else{
+            mostrarError('Error al cargar: '+(result.message||'Sin datos'));
+        }
+    }catch(e){
+        mostrarError('No se pudo conectar con Google Sheets. Error: '+e.message);
+    }
+}
+
+function mostrarError(msg){
+    document.getElementById('contenidoDash').innerHTML='<div class="sin-datos"><p style="font-size:40px">⚠️</p><p style="margin-top:15px">'+msg+'</p><button onclick="cargarDatos()" style="margin-top:20px;background:#3498db;color:#fff;border:none;padding:12px 25px;border-radius:8px;cursor:pointer;font-size:15px">🔄 Reintentar</button></div>';
+}
+
+// APLICAR FILTROS
+function aplicarFiltros(){
+    var fecha=document.getElementById('filtroFecha').value;
+    var centro=document.getElementById('filtroCentro').value.toLowerCase();
+    var inspector=document.getElementById('filtroInspector').value.toLowerCase();
+    var estado=document.getElementById('filtroEstado').value;
+    
+    datosFiltrados=todosLosDatos.filter(function(d){
+        var okFecha=!fecha||d['Fecha']===fecha;
+        var okCentro=!centro||((d['Centro']||'').toLowerCase().includes(centro));
+        var okInspector=!inspector||((d['Inspector']||'').toLowerCase().includes(inspector));
+        var okEstado=!estado||(
+            (d['Estado Ilum.']===estado)||
+            (d['Estado Aseos']===estado)||
+            (d['Estado Ext']===estado)||
+            (d['Estado Int']===estado)||
+            (d['Estado Lab.']===estado)||
+            (d['Estado Puerta']===estado)
+        );
+        return okFecha&&okCentro&&okInspector&&okEstado;
+    });
+    renderDashboard(datosFiltrados);
+}
+
+function limpiarFiltros(){
+    document.getElementById('filtroFecha').value='';
+    document.getElementById('filtroCentro').value='';
+    document.getElementById('filtroInspector').value='';
+    document.getElementById('filtroEstado').value='';
+    datosFiltrados=todosLosDatos;
+    renderDashboard(datosFiltrados);
+}
+
+// RENDER DASHBOARD
+function renderDashboard(datos){
+    if(!datos||datos.length===0){
+        document.getElementById('contenidoDash').innerHTML='<div class="sin-datos"><p style="font-size:50px">📋</p><p style="margin-top:15px">No hay datos con los filtros seleccionados</p></div>';
+        return;
+    }
+
+    // Calcular estadísticas
+    var centros=new Set(datos.map(function(d){return d['Centro']||'Sin nombre'})).size;
+    var inspectores=new Set(datos.map(function(d){return d['Inspector']||''})).size;
+    var totalMalos=0,totalRegular=0,totalBueno=0;
+    var campos=['Estado Ilum.','Estado Aseos','Estado Ext','Estado Int','Estado Lab.','Estado Puerta'];
+    datos.forEach(function(d){
+        campos.forEach(function(c){
+            var v=(d[c]||'').toLowerCase();
+            if(v==='malo')totalMalos++;
+            else if(v==='regular')totalRegular++;
+            else if(v==='bueno')totalBueno++;
+        });
+    });
+
+    // Estadísticas por categoría
+    function contarEstados(campo){
+        var bueno=0,regular=0,malo=0;
+        datos.forEach(function(d){var v=(d[campo]||'').toLowerCase();if(v==='bueno')bueno++;else if(v==='regular')regular++;else if(v==='malo')malo++;});
+        return{bueno:bueno,regular:regular,malo:malo};
+    }
+
+    var eIlum=contarEstados('Estado Ilum.');
+    var eAseos=contarEstados('Estado Aseos');
+    var eClimExt=contarEstados('Estado Ext');
+    var eClimInt=contarEstados('Estado Int');
+    var eLab=contarEstados('Estado Lab.');
+    var ePuerta=contarEstados('Estado Puerta');
+
+    // Empresas
+    var empresaMap={};
+    datos.forEach(function(d){
+        var c=d['Centro']||'Sin nombre';
+        if(!empresaMap[c])empresaMap[c]={total:0,malos:0,regulares:0,buenos:0,fechas:[]};
+        empresaMap[c].total++;
+        empresaMap[c].fechas.push(d['Fecha']||'');
+        campos.forEach(function(campo){
+            var v=(d[campo]||'').toLowerCase();
+            if(v==='malo')empresaMap[c].malos++;
+            else if(v==='regular')empresaMap[c].regulares++;
+            else if(v==='bueno')empresaMap[c].buenos++;
+        });
+    });
+
+    var empresasOrdenadas=Object.keys(empresaMap).sort(function(a,b){return empresaMap[b].malos-empresaMap[a].malos});
+
+    var html='';
+
+    // TARJETAS ESTADÍSTICAS
+    html+='<div class="stats-grid">';
+    html+='<div class="stat-card"><div class="num">'+datos.length+'</div><div class="label">📋 Total Inspecciones</div></div>';
+    html+='<div class="stat-card morado"><div class="num">'+centros+'</div><div class="label">🏢 Centros Únicos</div></div>';
+    html+='<div class="stat-card"><div class="num">'+inspectores+'</div><div class="label">👤 Inspectores</div></div>';
+    html+='<div class="stat-card verde"><div class="num">'+totalBueno+'</div><div class="label">✅ Evaluaciones Buenas</div></div>';
+    html+='<div class="stat-card naranja"><div class="num">'+totalRegular+'</div><div class="label">⚠️ Evaluaciones Regular</div></div>';
+    html+='<div class="stat-card rojo"><div class="num">'+totalMalos+'</div><div class="label">❌ Evaluaciones Malas</div></div>';
+    html+='</div>';
+
+    // GRÁFICAS
+    html+='<div class="graficas-grid">';
+    html+='<div class="grafica-card"><h3>📊 Estado General por Categoría</h3><canvas id="graficaGeneral" height="250"></canvas></div>';
+    html+='<div class="grafica-card"><h3>🏢 Top Empresas con Problemas</h3><canvas id="graficaEmpresas" height="250"></canvas></div>';
+    html+='<div class="grafica-card"><h3>🔄 Distribución Estado Global</h3><canvas id="graficaDonut" height="250"></canvas></div>';
+    html+='<div class="grafica-card"><h3>📅 Inspecciones por Fecha</h3><canvas id="graficaFechas" height="250"></canvas></div>';
+    html+='</div>';
+
+    // LISTA DE EMPRESAS
+    html+='<div class="empresa-lista">';
+    html+='<div class="tabla-header"><h3>🏢 Resumen por Empresa</h3></div>';
+    empresasOrdenadas.forEach(function(empresa){
+        var e=empresaMap[empresa];
+        var pctMalo=e.total>0?Math.round((e.malos/(e.malos+e.regulares+e.buenos||1))*100):0;
+        html+='<div class="empresa-item" onclick="filtrarPorEmpresa(\''+empresa.replace(/'/g,"\\'")+'\')">';
+        html+='<div><div class="empresa-nombre">🏢 '+empresa+'</div><div style="font-size:12px;color:#888;margin-top:4px">'+e.total+' inspecciones | Último: '+(e.fechas.sort().pop()||'-')+'</div></div>';
+        html+='<div class="empresa-stats">';
+        html+='<span class="empresa-stat" style="color:#27ae60">✅ '+e.buenos+'</span>';
+        html+='<span class="empresa-stat" style="color:#f39c12">⚠️ '+e.regulares+'</span>';
+        html+='<span class="empresa-stat" style="color:#e74c3c">❌ '+e.malos+'</span>';
+        html+='<span class="empresa-stat" style="color:'+(pctMalo>30?'#e74c3c':pctMalo>10?'#f39c12':'#27ae60')+'">'+pctMalo+'% prob.</span>';
+        html+='</div></div>';
+    });
+    html+='</div>';
+
+    // TABLA
+    html+='<div class="tabla-container">';
+    html+='<div class="tabla-header"><h3>📋 Listado de Inspecciones</h3><input class="buscar-tabla" type="text" placeholder="🔍 Buscar en tabla..." oninput="buscarEnTabla(this.value)"></div>';
+    html+='<div style="overflow-x:auto"><table id="tablaInspecciones"><thead><tr><th>Fecha</th><th>Centro</th><th>Inspector</th><th>Iluminación</th><th>Aseos</th><th>Clim.Ext</th><th>Clim.Int</th><th>Laboratorio</th><th>Puerta</th><th>Detalles</th></tr></thead><tbody id="tablaBody">';
+    datos.forEach(function(d,idx){
+        html+='<tr onclick="verDetalle('+idx+')">';
+        html+='<td>'+(d['Fecha']||'-')+'</td>';
+        html+='<td><strong>'+(d['Centro']||'-')+'</strong></td>';
+        html+='<td>'+(d['Inspector']||'-')+'</td>';
+        html+='<td>'+getBadge(d['Estado Ilum.'])+'</td>';
+        html+='<td>'+getBadge(d['Estado Aseos'])+'</td>';
+        html+='<td>'+getBadge(d['Estado Ext'])+'</td>';
+        html+='<td>'+getBadge(d['Estado Int'])+'</td>';
+        html+='<td>'+getBadge(d['Estado Lab.'])+'</td>';
+        html+='<td>'+getBadge(d['Estado Puerta'])+'</td>';
+        html+='<td><button onclick="event.stopPropagation();verDetalle('+idx+')" style="background:#3498db;color:#fff;border:none;padding:5px 12px;border-radius:6px;cursor:pointer;font-size:12px">👁️ Ver</button></td>';
+        html+='</tr>';
+    });
+    html+='</tbody></table></div></div>';
+
+    document.getElementById('contenidoDash').innerHTML=html;
+
+    // DIBUJAR GRÁFICAS
+    setTimeout(function(){
+        // Gráfica barras por categoría
+        var ctx1=document.getElementById('graficaGeneral');
+        if(ctx1){
+            if(graficas.general)graficas.general.destroy();
+            graficas.general=new Chart(ctx1,{
+                type:'bar',
+                data:{
+                    labels:['Iluminación','Aseos','Clim.Ext','Clim.Int','Laboratorio','Puerta'],
+                    datasets:[
+                        {label:'Bueno',data:[eIlum.bueno,eAseos.bueno,eClimExt.bueno,eClimInt.bueno,eLab.bueno,ePuerta.bueno],backgroundColor:'rgba(39,174,96,0.8)'},
+                        {label:'Regular',data:[eIlum.regular,eAseos.regular,eClimExt.regular,eClimInt.regular,eLab.regular,ePuerta.regular],backgroundColor:'rgba(243,156,18,0.8)'},
+                        {label:'Malo',data:[eIlum.malo,eAseos.malo,eClimExt.malo,eClimInt.malo,eLab.malo,ePuerta.malo],backgroundColor:'rgba(231,76,60,0.8)'}
+                    ]
+                },
+                options:{responsive:true,plugins:{legend:{labels:{color:'#aaa'}}},scales:{x:{ticks:{color:'#aaa'},grid:{color:'#2c3e50'}},y:{ticks:{color:'#aaa'},grid:{color:'#2c3e50'},beginAtZero:true}}}
+            });
+        }
+
+        // Gráfica empresas
+        var ctx2=document.getElementById('graficaEmpresas');
+        if(ctx2){
+            var top5=empresasOrdenadas.slice(0,6);
+            if(graficas.empresas)graficas.empresas.destroy();
+            graficas.empresas=new Chart(ctx2,{
+                type:'bar',
+                data:{
+                    labels:top5,
+                    datasets:[
+                        {label:'Malos',data:top5.map(function(e){return empresaMap[e].malos}),backgroundColor:'rgba(231,76,60,0.8)'},
+                        {label:'Regular',data:top5.map(function(e){return empresaMap[e].regulares}),backgroundColor:'rgba(243,156,18,0.8)'},
+                        {label:'Buenos',data:top5.map(function(e){return empresaMap[e].buenos}),backgroundColor:'rgba(39,174,96,0.8)'}
+                    ]
+                },
+                options:{indexAxis:'y',responsive:true,plugins:{legend:{labels:{color:'#aaa'}}},scales:{x:{ticks:{color:'#aaa'},grid:{color:'#2c3e50'},beginAtZero:true},y:{ticks:{color:'#aaa'},grid:{color:'#2c3e50'}}}}
+            });
+        }
+
+        // Donut
+        var ctx3=document.getElementById('graficaDonut');
+        if(ctx3){
+            if(graficas.donut)graficas.donut.destroy();
+            graficas.donut=new Chart(ctx3,{
+                type:'doughnut',
+                data:{
+                    labels:['✅ Bueno','⚠️ Regular','❌ Malo'],
+                    datasets:[{data:[totalBueno,totalRegular,totalMalos],backgroundColor:['rgba(39,174,96,0.8)','rgba(243,156,18,0.8)','rgba(231,76,60,0.8)'],borderColor:['#27ae60','#f39c12','#e74c3c'],borderWidth:2}]
+                },
+                options:{responsive:true,plugins:{legend:{labels:{color:'#aaa',font:{size:13}}}}}
+            });
+        }
+
+        // Fechas
+        var ctx4=document.getElementById('graficaFechas');
+        if(ctx4){
+            var fechaMap={};
+            datos.forEach(function(d){var f=d['Fecha']||'Sin fecha';fechaMap[f]=(fechaMap[f]||0)+1});
+            var fechasOrdenadas=Object.keys(fechaMap).sort();
+            if(graficas.fechas)graficas.fechas.destroy();
+            graficas.fechas=new Chart(ctx4,{
+                type:'line',
+                data:{
+                    labels:fechasOrdenadas,
+                    datasets:[{label:'Inspecciones',data:fechasOrdenadas.map(function(f){return fechaMap[f]}),borderColor:'#3498db',backgroundColor:'rgba(52,152,219,0.2)',fill:true,tension:0.4,pointBackgroundColor:'#3498db'}]
+                },
+                options:{responsive:true,plugins:{legend:{labels:{color:'#aaa'}}},scales:{x:{ticks:{color:'#aaa'},grid:{color:'#2c3e50'}},y:{ticks:{color:'#aaa'},grid:{color:'#2c3e50'},beginAtZero:true}}}
+            });
+        }
+    },100);
+}
+
+function getBadge(estado){
+    if(!estado)return'<span class="badge badge-na">-</span>';
+    var l=estado.toLowerCase();
+    if(l==='bueno')return'<span class="badge badge-bueno">✅ '+estado+'</span>';
+    if(l==='regular')return'<span class="badge badge-regular">⚠️ '+estado+'</span>';
+    if(l==='malo')return'<span class="badge badge-malo">❌ '+estado+'</span>';
+    return'<span class="badge badge-na">'+estado+'</span>';
+}
+
+function filtrarPorEmpresa(empresa){
+    document.getElementById('filtroCentro').value=empresa;
+    aplicarFiltros();
+    window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function buscarEnTabla(texto){
+    var filas=document.querySelectorAll('#tablaBody tr');
+    texto=texto.toLowerCase();
+    filas.forEach(function(fila){
+        fila.style.display=fila.textContent.toLowerCase().includes(texto)?'':'none';
+    });
+}
+
+function verDetalle(idx){
+    var d=datosFiltrados[idx];
+    if(!d)return;
+    var html='<h2>📋 Inspección: '+( d['Centro']||'Sin nombre')+'</h2>';
+    html+='<div class="modal-grid">';
+    html+='<div class="modal-campo"><small>🏢 Centro</small><strong>'+(d['Centro']||'-')+'</strong></div>';
+    html+='<div class="modal-campo"><small>📅 Fecha</small><strong>'+(d['Fecha']||'-')+'</strong></div>';
+    html+='<div class="modal-campo"><small>👤 Inspector</small><strong>'+(d['Inspector']||'-')+'</strong></div>';
+    html+='<div class="modal-campo"><small>🕐 Timestamp</small><strong>'+(d['Timestamp']||'-')+'</strong></div>';
+    html+='</div>';
+
+    html+='<div class="modal-seccion"><h4>💡 Iluminación y Electricidad</h4><div class="modal-grid">';
+    html+='<div class="modal-campo"><small>Estado</small><strong>'+getBadge(d['Estado Ilum.'])+'</strong></div>';
+    html+='<div class="modal-campo"><small>Tipo</small><strong>'+(d['Tipo Ilum.']||'-')+'</strong></div>';
+    html+='<div class="modal-campo"><small>Mecanismos</small><strong>'+(d['Tipo Mecanismos']||'-')+'</strong></div>';
+    html+='<div class="modal-campo"><small>Estado Mec.</small><strong>'+getBadge(d['Estado Mecanismos'])+'</strong></div>';
+    html+='</div>';
+    if(d['Recom. Electricidad'])html+='<div style="margin-top:8px;padding:8px;background:#1a2535;border-radius:6px;font-size:13px;color:#f39c12">📝 '+d['Recom. Electricidad']+'</div>';
+    html+='</div>';
+
+    html+='<div class="modal-seccion"><h4>🚿 Fontanería</h4><div class="modal-grid">';
+    html+='<div class="modal-campo"><small>Estado Aseos</small><strong>'+getBadge(d['Estado Aseos'])+'</strong></div>';
+    html+='<div class="modal-campo"><small>Nº Aseos</small><strong>'+(d['Nº Aseos']||'-')+'</strong></div>';
+    html+='<div class="modal-campo"><small>Tipo ACS</small><strong>'+(d['Tipo ACS']||'-')+'</strong></div>';
+    html+='<div class="modal-campo"><small>Estado ACS</small><strong>'+getBadge(d['Estado ACS'])+'</strong></div>';
+    html+='<div class="modal-campo"><small>Marca ACS</small><strong>'+(d['Marca ACS']||'-')+'</strong></div>';
+    html+='</div>';
+    if(d['Recom. Aseos'])html+='<div style="margin-top:8px;padding:8px;background:#1a2535;border-radius:6px;font-size:13px;color:#f39c12">📝 '+d['Recom. Aseos']+'</div>';
+    html+='</div>';
+
+    html+='<div class="modal-seccion"><h4>❄️ Climatización</h4><div class="modal-grid">';
+    html+='<div class="modal-campo"><small>Sistema</small><strong>'+(d['Tipo Clima']||'-')+'</strong></div>';
+    html+='<div class="modal-campo"><small>Ubic. Exterior</small><strong>'+(d['Ubic. Exterior']||'-')+'</strong></div>';
+    html+='<div class="modal-campo"><small>Nº Uds Ext.</small><strong>'+(d['Nº Uds Ext']||'-')+'</strong></div>';
+    html+='<div class="modal-campo"><small>Estado Ext.</small><strong>'+getBadge(d['Estado Ext'])+'</strong></div>';
+    html+='<div class="modal-campo"><small>Tipo Interior</small><strong>'+(d['Tipo Interior']||'-')+'</strong></div>';
+    html+='<div class="modal-campo"><small>Nº Uds Int.</small><strong>'+(d['Nº Uds Int']||'-')+'</strong></div>';
+    html+='<div class="modal-campo"><small>Estado Int.</small><strong>'+getBadge(d['Estado Int'])+'</strong></div>';
+    html+='</div>';
+    if(d['Recom. Clima'])html+='<div style="margin-top:8px;padding:8px;background:#1a2535;border-radius:6px;font-size:13px;color:#f39c12">📝 '+d['Recom. Clima']+'</div>';
+    html+='</div>';
+
+    html+='<div class="modal-seccion"><h4>🧪 Laboratorio</h4><div class="modal-grid">';
+    html+='<div class="modal-campo"><small>Estado</small><strong>'+getBadge(d['Estado Lab.'])+'</strong></div>';
+    html+='<div class="modal-campo"><small>Tipo</small><strong>'+(d['Tipo Lab.']||'-')+'</strong></div>';
+    html+='<div class="modal-campo"><small>Nº Equipos</small><strong>'+(d['Nº Equipos Lab']||'-')+'</strong></div>';
+    html+='<div class="modal-campo"><small>Seguridad</small><strong>'+(d['Seguridad Lab']||'-')+'</strong></div>';
+    html+='<div class="modal-campo"><small>Estado Seg.</small><strong>'+getBadge(d['Estado Seguridad Lab'])+'</strong></div>';
+    html+='</div>';
+    if(d['Recom. Lab.'])html+='<div style="margin-top:8px;padding:8px;background:#1a2535;border-radius:6px;font-size:13px;color:#f39c12">📝 '+d['Recom. Lab.']+'</div>';
+    html+='</div>';
+
+    html+='<div class="modal-seccion"><h4>🚪 Accesos</h4><div class="modal-grid">';
+    html+='<div class="modal-campo"><small>Tipo Puerta</small><strong>'+(d['Tipo Puerta']||'-')+'</strong></div>';
+    html+='<div class="modal-campo"><small>Estado</small><strong>'+getBadge(d['Estado Puerta'])+'</strong></div>';
+    html+='<div class="modal-campo"><small>Persiana</small><strong>'+(d['Persiana']||'-')+'</strong></div>';
+    html+='<div class="modal-campo"><small>Estado Pers.</small><strong>'+getBadge(d['Estado Persiana'])+'</strong></div>';
+    html+='</div>';
+    if(d['Llaves'])html+='<div style="margin-top:8px;padding:8px;background:#1a2535;border-radius:6px;font-size:13px">🔑 '+d['Llaves']+'</div>';
+    html+='</div>';
+
+    if(d['Desperfectos']){
+        html+='<div class="modal-seccion"><h4>🪑 Desperfectos</h4>';
+        html+='<div style="padding:8px;background:#1a2535;border-radius:6px;font-size:13px;color:#e74c3c">'+d['Desperfectos']+'</div>';
+        html+='</div>';
+    }
+
+    if(d['Observaciones']){
+        html+='<div class="modal-seccion"><h4>📝 Observaciones</h4>';
+        html+='<div style="padding:8px;background:#1a2535;border-radius:6px;font-size:13px">'+d['Observaciones']+'</div>';
+        html+='</div>';
+    }
+
+    document.getElementById('modalContenido').innerHTML=html;
+    document.getElementById('modalOverlay').classList.add('active');
+}
+
+function cerrarModal(e){if(e.target===document.getElementById('modalOverlay'))document.getElementById('modalOverlay').classList.remove('active')}
+function cerrarModalBtn(){document.getElementById('modalOverlay').classList.remove('active')}
+
+window.addEventListener('load',cargarDatos);
+</script>
+</body>
+</html>
